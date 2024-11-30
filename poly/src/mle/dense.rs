@@ -1,3 +1,5 @@
+use core::ops::IndexMut;
+
 use ark_ff::Zero;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
@@ -362,5 +364,11 @@ impl<R: Ring> Index<usize> for DenseMultilinearExtension<R> {
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.evaluations[index]
+    }
+}
+
+impl<R: Ring> IndexMut<usize> for DenseMultilinearExtension<R> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.evaluations[index]
     }
 }
