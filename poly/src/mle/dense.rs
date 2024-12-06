@@ -137,7 +137,12 @@ impl<R: Ring> MultilinearExtension<R> for DenseMultilinearExtension<R> {
             for b in 0..1 << (nv - i) {
                 let left = poly[b << 1];
                 let right = poly[(b << 1) + 1];
-                poly[b] = left + r * (right - left);
+                let a = right - left;
+                if !a.is_zero() {
+                    poly[b] = left + r * a;
+                } else {
+                    poly[b] = left;
+                };
             }
         }
         Self::from_evaluations_slice(nv - dim, &poly[..1 << (nv - dim)])
