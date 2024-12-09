@@ -145,7 +145,8 @@ impl<R: Ring> MultilinearExtension<R> for DenseMultilinearExtension<R> {
                 };
             }
         }
-        Self::from_evaluations_slice(nv - dim, &poly[..1 << (nv - dim)])
+        poly.truncate(1 << (nv - dim));
+        Self::from_evaluations_vec(nv - dim, poly)
     }
 
     fn to_evaluations(&self) -> Vec<R> {
