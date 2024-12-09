@@ -17,7 +17,11 @@ use ark_std::{
 use derive_more::{From, Into};
 
 use super::ring_config::CyclotomicConfig;
-use crate::{balanced_decomposition::Decompose, traits::FromRandomBytes, PolyRing, Ring};
+use crate::{
+    balanced_decomposition::Decompose,
+    traits::{FromRandomBytes, MulUnchecked},
+    PolyRing, Ring,
+};
 
 /// A cyclotomic ring Fp[X]/(Phi_m(X)) in the coefficient form.
 /// * `C` is the configuration of the cyclotomic ring.
@@ -51,9 +55,24 @@ impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> CyclotomicPolyRingG
         let lhs_coeffs = self.coeffs();
         let rhs_coeffs = rhs.coeffs();
         let mut coeffs = vec![<Fp::<C::BaseFieldConfig, N> as Field>::ZERO; 2 * D - 1];
-        for i in 0..D {
-            for j in 0..D {
-                coeffs[i + j] += lhs_coeffs[i] * rhs_coeffs[j];
+        for (i, &lhs_coeff) in lhs_coeffs.iter().enumerate() {
+            if !lhs_coeff.is_zero() {
+                for (j, &rhs_coeff) in rhs_coeffs.iter().enumerate() {
+                    coeffs[i + j] += lhs_coeff * rhs_coeff;
+                }
+            }
+        }
+        C::reduce_in_place(&mut coeffs);
+        Self::from_coeffs_vec(coeffs)
+    }
+
+    fn poly_mul_unchecked(&self, rhs: &Self) -> Self {
+        let lhs_coeffs = self.coeffs();
+        let rhs_coeffs = rhs.coeffs();
+        let mut coeffs = vec![<Fp::<C::BaseFieldConfig, N> as Field>::ZERO; 2 * D - 1];
+        for (i, &lhs_coeff) in lhs_coeffs.iter().enumerate() {
+            for (j, &rhs_coeff) in rhs_coeffs.iter().enumerate() {
+                coeffs[i + j] += lhs_coeff * rhs_coeff;
             }
         }
         C::reduce_in_place(&mut coeffs);
@@ -237,6 +256,16 @@ impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Mul<Self>
     }
 }
 
+impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> MulUnchecked<Self>
+    for CyclotomicPolyRingGeneral<C, N, D>
+{
+    type Output = Self;
+
+    fn mul_unchecked(self, rhs: Self) -> Self::Output {
+        self.poly_mul_unchecked(&rhs)
+    }
+}
+
 impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Neg
     for CyclotomicPolyRingGeneral<C, N, D>
 {
@@ -319,6 +348,16 @@ impl<'a, C: CyclotomicConfig<N>, const N: usize, const D: usize> Mul<&'a mut Sel
     }
 }
 
+impl<'a, C: CyclotomicConfig<N>, const N: usize, const D: usize> MulUnchecked<&'a mut Self>
+    for CyclotomicPolyRingGeneral<C, N, D>
+{
+    type Output = Self;
+
+    fn mul_unchecked(self, rhs: &'a mut Self) -> Self::Output {
+        self.poly_mul_unchecked(rhs)
+    }
+}
+
 impl<'a, C: CyclotomicConfig<N>, const N: usize, const D: usize> AddAssign<&'a mut Self>
     for CyclotomicPolyRingGeneral<C, N, D>
 {
@@ -354,6 +393,16 @@ impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Mul<Fp<C::BaseField
 
     fn mul(self, rhs: Fp<C::BaseFieldConfig, N>) -> Self::Output {
         self.poly_mul(&Self::from_scalar(rhs))
+    }
+}
+
+impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> MulUnchecked<Fp<C::BaseFieldConfig, N>>
+    for CyclotomicPolyRingGeneral<C, N, D>
+{
+    type Output = Self;
+
+    fn mul_unchecked(self, rhs: Fp<C::BaseFieldConfig, N>) -> Self::Output {
+        self.poly_mul_unchecked(&Self::from_scalar(rhs))
     }
 }
 
@@ -410,7 +459,7 @@ impl<'a, C: CyclotomicConfig<N>, const N: usize, const D: usize> MulAssign<&'a S
     for CyclotomicPolyRingGeneral<C, N, D>
 {
     fn mul_assign(&mut self, rhs: &'a Self) {
-        self.poly_mul_in_place(rhs)
+        self.poly_mul_in_place(rhs);
     }
 }
 
@@ -563,7 +612,8 @@ macro_rules! impl_add_mul_primitive_type {
             type Output = Self;
 
             fn mul(mut self, rhs: $primitive_type) -> Self::Output {
-                self.0.iter_mut().for_each(|lhs| *lhs *= Fp::from(rhs));
+                let r = Fp::from(rhs);
+                self.0.iter_mut().for_each(|lhs| *lhs *= r);
 
                 self
             }
@@ -583,7 +633,8 @@ macro_rules! impl_add_mul_primitive_type {
             for CyclotomicPolyRingGeneral<C, N, D>
         {
             fn mul_assign(&mut self, rhs: $primitive_type) {
-                self.0.iter_mut().for_each(|lhs| *lhs *= Fp::from(rhs));
+                let r = Fp::from(rhs);
+                self.0.iter_mut().for_each(|lhs| *lhs *= r);
             }
         }
 
@@ -591,7 +642,8 @@ macro_rules! impl_add_mul_primitive_type {
             MulAssign<&'a $primitive_type> for CyclotomicPolyRingGeneral<C, N, D>
         {
             fn mul_assign(&mut self, rhs: &'a $primitive_type) {
-                self.0.iter_mut().for_each(|lhs| *lhs *= Fp::from(*rhs));
+                let r = Fp::from(*rhs);
+                self.0.iter_mut().for_each(|lhs| *lhs *= r);
             }
         }
 

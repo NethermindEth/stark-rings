@@ -98,3 +98,8 @@ impl<R: Cyclotomic> Iterator for Rotation<R> {
         Some(curr)
     }
 }
+
+pub trait MulUnchecked<Rhs = Self> {
+    type Output;
+    fn mul_unchecked(self, rhs: Rhs) -> Self::Output;
+}

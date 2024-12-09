@@ -12,7 +12,10 @@ use ark_std::{
 use derive_more::{From, Into};
 
 use super::ring_config::CyclotomicConfig;
-use crate::{traits::FromRandomBytes, PolyRing, Ring};
+use crate::{
+    traits::{FromRandomBytes, MulUnchecked},
+    PolyRing, Ring,
+};
 
 /// A cyclotomic ring Fp[X]/(Phi_m(X)) in the CRT-form.
 /// * `C` is the configuration of the cyclotomic ring.
@@ -159,10 +162,27 @@ impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Mul<Self>
     type Output = Self;
 
     fn mul(mut self, rhs: Self) -> Self::Output {
-        self.0
-            .iter_mut()
-            .zip(rhs.0)
-            .for_each(|(lhs, rhs)| *lhs *= rhs);
+        self.0.iter_mut().zip(rhs.0).for_each(|(lhs, rhs)| {
+            if lhs.is_zero() || rhs.is_zero() {
+                *lhs = C::BaseCRTField::zero();
+            } else {
+                *lhs *= rhs;
+            }
+        });
+
+        self
+    }
+}
+
+impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> MulUnchecked<Self>
+    for CyclotomicPolyRingNTTGeneral<C, N, D>
+{
+    type Output = Self;
+
+    fn mul_unchecked(mut self, rhs: Self) -> Self::Output {
+        self.0.iter_mut().zip(rhs.0).for_each(|(lhs, rhs)| {
+            *lhs *= rhs;
+        });
 
         self
     }
@@ -194,10 +214,13 @@ impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> MulAssign<Self>
     for CyclotomicPolyRingNTTGeneral<C, N, D>
 {
     fn mul_assign(&mut self, rhs: Self) {
-        self.0
-            .iter_mut()
-            .zip(rhs.0)
-            .for_each(|(lhs, rhs)| *lhs *= rhs);
+        self.0.iter_mut().zip(rhs.0).for_each(|(lhs, rhs)| {
+            if lhs.is_zero() || rhs.is_zero() {
+                *lhs = C::BaseCRTField::zero();
+            } else {
+                *lhs *= rhs;
+            }
+        });
     }
 }
 
@@ -267,6 +290,24 @@ impl<'a, C: CyclotomicConfig<N>, const N: usize, const D: usize> Mul<&'a mut Sel
     type Output = Self;
 
     fn mul(mut self, rhs: &'a mut Self) -> Self::Output {
+        self.0.iter_mut().zip(rhs.0).for_each(|(lhs, rhs)| {
+            if lhs.is_zero() || rhs.is_zero() {
+                *lhs = C::BaseCRTField::zero();
+            } else {
+                *lhs *= rhs;
+            }
+        });
+
+        self
+    }
+}
+
+impl<'a, C: CyclotomicConfig<N>, const N: usize, const D: usize> MulUnchecked<&'a mut Self>
+    for CyclotomicPolyRingNTTGeneral<C, N, D>
+{
+    type Output = Self;
+
+    fn mul_unchecked(mut self, rhs: &'a mut Self) -> Self::Output {
         self.0
             .iter_mut()
             .zip(rhs.0)
@@ -302,10 +343,13 @@ impl<'a, C: CyclotomicConfig<N>, const N: usize, const D: usize> MulAssign<&'a m
     for CyclotomicPolyRingNTTGeneral<C, N, D>
 {
     fn mul_assign(&mut self, rhs: &'a mut Self) {
-        self.0
-            .iter_mut()
-            .zip(rhs.0)
-            .for_each(|(lhs, rhs)| *lhs *= rhs);
+        self.0.iter_mut().zip(rhs.0).for_each(|(lhs, rhs)| {
+            if lhs.is_zero() || rhs.is_zero() {
+                *lhs = C::BaseCRTField::zero();
+            } else {
+                *lhs *= rhs;
+            }
+        });
     }
 }
 
@@ -334,9 +378,8 @@ macro_rules! impl_add_mul_primitive_type {
             type Output = Self;
 
             fn mul(mut self, rhs: $primitive_type) -> Self::Output {
-                self.0
-                    .iter_mut()
-                    .for_each(|lhs| *lhs *= C::BaseCRTField::from(rhs));
+                let r = C::BaseCRTField::from(rhs);
+                self.0.iter_mut().for_each(|lhs| *lhs *= r);
 
                 self
             }
@@ -356,9 +399,8 @@ macro_rules! impl_add_mul_primitive_type {
             for CyclotomicPolyRingNTTGeneral<C, N, D>
         {
             fn mul_assign(&mut self, rhs: $primitive_type) {
-                self.0
-                    .iter_mut()
-                    .for_each(|lhs| *lhs *= C::BaseCRTField::from(rhs));
+                let r = C::BaseCRTField::from(rhs);
+                self.0.iter_mut().for_each(|lhs| *lhs *= r);
             }
         }
 
@@ -366,18 +408,16 @@ macro_rules! impl_add_mul_primitive_type {
             MulAssign<&'a $primitive_type> for CyclotomicPolyRingNTTGeneral<C, N, D>
         {
             fn mul_assign(&mut self, rhs: &'a $primitive_type) {
-                self.0
-                    .iter_mut()
-                    .for_each(|lhs| *lhs *= C::BaseCRTField::from(*rhs));
+                let r = C::BaseCRTField::from(*rhs);
+                self.0.iter_mut().for_each(|lhs| *lhs *= r);
             }
         }
         impl<'a, C: CyclotomicConfig<N>, const N: usize, const D: usize> MulAssign<$primitive_type>
             for &'a mut CyclotomicPolyRingNTTGeneral<C, N, D>
         {
             fn mul_assign(&mut self, rhs: $primitive_type) {
-                self.0
-                    .iter_mut()
-                    .for_each(|lhs| *lhs *= C::BaseCRTField::from(rhs));
+                let r = C::BaseCRTField::from(rhs);
+                self.0.iter_mut().for_each(|lhs| *lhs *= r);
             }
         }
 
@@ -387,9 +427,8 @@ macro_rules! impl_add_mul_primitive_type {
             type Output = Self;
 
             fn add(mut self, rhs: $primitive_type) -> Self::Output {
-                self.0
-                    .iter_mut()
-                    .for_each(|lhs| *lhs += C::BaseCRTField::from(rhs));
+                let r = C::BaseCRTField::from(rhs);
+                self.0.iter_mut().for_each(|lhs| *lhs += r);
 
                 self
             }
@@ -408,9 +447,8 @@ macro_rules! impl_add_mul_primitive_type {
             for CyclotomicPolyRingNTTGeneral<C, N, D>
         {
             fn add_assign(&mut self, rhs: $primitive_type) {
-                self.0
-                    .iter_mut()
-                    .for_each(|lhs| *lhs += C::BaseCRTField::from(rhs));
+                let r = C::BaseCRTField::from(rhs);
+                self.0.iter_mut().for_each(|lhs| *lhs += r);
             }
         }
 
@@ -418,9 +456,8 @@ macro_rules! impl_add_mul_primitive_type {
             for &'a mut CyclotomicPolyRingNTTGeneral<C, N, D>
         {
             fn add_assign(&mut self, rhs: $primitive_type) {
-                self.0
-                    .iter_mut()
-                    .for_each(|lhs| *lhs += C::BaseCRTField::from(rhs));
+                let r = C::BaseCRTField::from(rhs);
+                self.0.iter_mut().for_each(|lhs| *lhs += r);
             }
         }
 
@@ -430,9 +467,8 @@ macro_rules! impl_add_mul_primitive_type {
             type Output = Self;
 
             fn sub(mut self, rhs: $primitive_type) -> Self::Output {
-                self.0
-                    .iter_mut()
-                    .for_each(|lhs| *lhs -= C::BaseCRTField::from(rhs));
+                let r = C::BaseCRTField::from(rhs);
+                self.0.iter_mut().for_each(|lhs| *lhs -= r);
 
                 self
             }
@@ -452,9 +488,8 @@ macro_rules! impl_add_mul_primitive_type {
             for CyclotomicPolyRingNTTGeneral<C, N, D>
         {
             fn sub_assign(&mut self, rhs: $primitive_type) {
-                self.0
-                    .iter_mut()
-                    .for_each(|lhs| *lhs -= C::BaseCRTField::from(rhs));
+                let r = C::BaseCRTField::from(rhs);
+                self.0.iter_mut().for_each(|lhs| *lhs -= r);
             }
         }
 
@@ -462,9 +497,8 @@ macro_rules! impl_add_mul_primitive_type {
             for &'a mut CyclotomicPolyRingNTTGeneral<C, N, D>
         {
             fn sub_assign(&mut self, rhs: $primitive_type) {
-                self.0
-                    .iter_mut()
-                    .for_each(|lhs| *lhs -= C::BaseCRTField::from(rhs));
+                let r = C::BaseCRTField::from(rhs);
+                self.0.iter_mut().for_each(|lhs| *lhs -= r);
             }
         }
     };
@@ -490,11 +524,27 @@ impl<'a, C: CyclotomicConfig<N>, const N: usize, const D: usize> Mul<&'a Self>
     type Output = Self;
 
     fn mul(mut self, rhs: &'a Self) -> Self::Output {
+        self.0.iter_mut().zip(rhs.0).for_each(|(lhs, rhs)| {
+            if lhs.is_zero() || rhs.is_zero() {
+                *lhs = C::BaseCRTField::zero();
+            } else {
+                *lhs *= rhs;
+            }
+        });
+        self
+    }
+}
+
+impl<'a, C: CyclotomicConfig<N>, const N: usize, const D: usize> MulUnchecked<&'a Self>
+    for CyclotomicPolyRingNTTGeneral<C, N, D>
+{
+    type Output = Self;
+
+    fn mul_unchecked(mut self, rhs: &'a Self) -> Self::Output {
         self.0
             .iter_mut()
             .zip(rhs.0)
             .for_each(|(lhs, rhs)| *lhs *= rhs);
-
         self
     }
 }
@@ -525,10 +575,13 @@ impl<'a, C: CyclotomicConfig<N>, const N: usize, const D: usize> MulAssign<&'a S
     for CyclotomicPolyRingNTTGeneral<C, N, D>
 {
     fn mul_assign(&mut self, rhs: &'a Self) {
-        self.0
-            .iter_mut()
-            .zip(rhs.0)
-            .for_each(|(lhs, rhs)| *lhs *= rhs);
+        self.0.iter_mut().zip(rhs.0).for_each(|(lhs, rhs)| {
+            if lhs.is_zero() || rhs.is_zero() {
+                *lhs = C::BaseCRTField::zero();
+            } else {
+                *lhs *= rhs;
+            }
+        });
     }
 }
 
