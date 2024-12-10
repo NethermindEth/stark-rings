@@ -54,7 +54,11 @@ pub trait MultilinearExtension<R: Ring>:
 
     /// Reduce the number of variables of `self` by fixing the
     /// `partial_point.len()` variables at `partial_point`.
-    fn fix_variables(&self, partial_point: &[R]) -> Self;
+    fn fix_variables(&mut self, partial_point: &[R]);
+
+    /// Creates a new object with the number of variables of `self` reduced by fixing the
+    /// `partial_point.len()` variables at `partial_point`.
+    fn fixed_variables(&self, partial_point: &[R]) -> Self;
 
     /// Returns a list of evaluations over the domain, which is the boolean
     /// hypercube. The evaluations are in little-endian order.

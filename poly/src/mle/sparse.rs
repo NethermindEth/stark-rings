@@ -51,7 +51,7 @@ impl<R: Ring> SparseMultilinearExtension<R> {
     }
     pub fn evaluate(&self, point: &[R]) -> R {
         assert!(point.len() == self.num_vars);
-        self.fix_variables(point)[0]
+        self.fixed_variables(point)[0]
     }
     /// Outputs an `l`-variate multilinear extension where value of evaluations
     /// are sampled uniformly at random. The number of nonzero entries is
@@ -163,7 +163,7 @@ impl<R: Ring> MultilinearExtension<R> for SparseMultilinearExtension<R> {
         }
     }
 
-    fn fix_variables(&self, partial_point: &[R]) -> Self {
+    fn fix_variables(&mut self, partial_point: &[R]) {
         let dim = partial_point.len();
         assert!(dim <= self.num_vars, "invalid partial point dimension");
 
@@ -196,12 +196,18 @@ impl<R: Ring> MultilinearExtension<R> for SparseMultilinearExtension<R> {
             last = result;
         }
         let evaluations = hashmap_to_treemap(&last);
-        Self {
-            num_vars: self.num_vars - dim,
-            evaluations,
-            zero: R::zero(),
-        }
+
+        self.evaluations = evaluations;
+        self.num_vars -= dim;
+        self.zero = R::zero();
     }
+
+    fn fixed_variables(&self, partial_point: &[R]) -> Self {
+        let mut res = self.clone();
+        res.fix_variables(partial_point);
+        res
+    }
+
     fn to_evaluations(&self) -> Vec<R> {
         let mut evaluations: Vec<_> = (0..1 << self.num_vars).map(|_| R::zero()).collect();
         self.evaluations
@@ -492,7 +498,7 @@ mod tests {
         }
         // for the rest of elements of the boolean hypercube, expect it to evaluate to zero
         for s_i in bhc.iter().take(1 << z_mle.num_vars).skip(z.len()) {
-            assert_eq!(z_mle.fix_variables(s_i)[0], R::zero());
+            assert_eq!(z_mle.fixed_variables(s_i)[0], R::zero());
         }
     }
 }

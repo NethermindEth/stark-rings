@@ -30,7 +30,7 @@ impl<R: Ring> DenseMultilinearExtension<R> {
 
     pub fn evaluate(&self, point: &[R]) -> Option<R> {
         if point.len() == self.num_vars {
-            Some(self.fix_variables(point)[0])
+            Some(self.fixed_variables(point)[0])
         } else {
             None
         }
@@ -122,13 +122,13 @@ impl<R: Ring> MultilinearExtension<R> for DenseMultilinearExtension<R> {
         copy
     }
 
-    fn fix_variables(&self, partial_point: &[R]) -> Self {
+    fn fix_variables(&mut self, partial_point: &[R]) {
         assert!(
             partial_point.len() <= self.num_vars,
             "too many partial points"
         );
 
-        let mut poly = self.evaluations.to_vec();
+        let poly = &mut self.evaluations;
         let nv = self.num_vars;
         let dim = partial_point.len();
 
@@ -145,8 +145,15 @@ impl<R: Ring> MultilinearExtension<R> for DenseMultilinearExtension<R> {
                 };
             }
         }
-        poly.truncate(1 << (nv - dim));
-        Self::from_evaluations_vec(nv - dim, poly)
+
+        self.evaluations.truncate(1 << (nv - dim));
+        self.num_vars = nv - dim;
+    }
+
+    fn fixed_variables(&self, partial_point: &[R]) -> Self {
+        let mut res = self.clone();
+        res.fix_variables(partial_point);
+        res
     }
 
     fn to_evaluations(&self) -> Vec<R> {
