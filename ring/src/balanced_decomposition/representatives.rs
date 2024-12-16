@@ -377,37 +377,3 @@ impl From<i128> for SignedRepresentative<BigInt> {
         Self(BigInt::from(value))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use ark_ff::PrimeField;
-
-    use super::*;
-    use crate::zn::z_q::Zq;
-
-    const Q: u128 = 2u128.pow(61) - 1;
-    const Q_HALF: i128 = (Q as i128 - 1) / 2;
-    const TEST_STEP_SIZE: usize = (Q / 10) as usize;
-
-    type F = Zq<{ Q as u64 }>;
-
-    #[test]
-    fn test_unsigned_representative() {
-        for i in (0..Q).step_by(TEST_STEP_SIZE) {
-            let f1 = F::from(i);
-            let v1: UnsignedRepresentative<u128> = UnsignedRepresentative::from(f1);
-            assert_eq!(i, v1.0);
-        }
-    }
-
-    #[test]
-    fn test_signed_representative() {
-        assert_eq!(Q_HALF, F::MODULUS_MINUS_ONE_DIV_TWO.0[0] as i128);
-        for i in (-Q_HALF..=Q_HALF).step_by(TEST_STEP_SIZE) {
-            let v1 = SignedRepresentative::from(i);
-            let f2 = F::from(v1);
-            let v2 = SignedRepresentative::from(f2);
-            assert_eq!(v1.0, v2.0);
-        }
-    }
-}

@@ -291,12 +291,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::cyclotomic_ring::models::pow2_debug::{
-        Pow2CyclotomicPolyRing, Pow2CyclotomicPolyRingNTT,
-    };
-    use crate::zn::z_q::Zq;
+    use crate::cyclotomic_ring::models::goldilocks::{Fq, RqPoly};
+
+    use crate::PolyRing;
     use crate::SignedRepresentative;
-    use crate::{cyclotomic_ring::CRT, PolyRing};
 
     use super::*;
 
@@ -304,9 +302,8 @@ mod tests {
     const Q: u64 = 65537;
     const BASIS_TEST_RANGE: [u128; 5] = [2, 4, 8, 16, 32];
 
-    type R = Zq<Q>;
-    type PolyNTT = Pow2CyclotomicPolyRingNTT<Q, D>;
-    type PolyR = Pow2CyclotomicPolyRing<Q, D>;
+    type R = Fq;
+    type PolyR = RqPoly;
 
     #[test]
     fn test_decompose_balanced() {
@@ -356,7 +353,7 @@ mod tests {
 
     #[test]
     fn test_decompose_balanced_polyring() {
-        let v: PolyNTT = PolyR::from(get_test_vec()).crt();
+        let v: PolyR = PolyR::from(get_test_vec());
         for b in BASIS_TEST_RANGE {
             let b_half = b / 2;
             let decomp = decompose_balanced_polyring(&v, b, 16);
@@ -368,7 +365,7 @@ mod tests {
                 }
             }
 
-            assert_eq!(v, recompose::<PolyNTT, u128>(&decomp, b));
+            assert_eq!(v, recompose::<PolyR, u128>(&decomp, b));
         }
     }
 

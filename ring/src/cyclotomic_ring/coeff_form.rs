@@ -713,7 +713,7 @@ impl_add_mul_primitive_type!(bool);
 mod tests {
     use crate::{
         cyclotomic_ring::{
-            models::pow2_debug::{Pow2CyclotomicPolyRing, Pow2CyclotomicPolyRingNTT},
+            models::goldilocks::{RqNTT, RqPoly},
             CRT, ICRT,
         },
         Ring,
@@ -721,23 +721,23 @@ mod tests {
 
     #[test]
     fn test_ntt_one() {
-        let one = Pow2CyclotomicPolyRing::<131072, 1024>::ONE;
+        let one = RqPoly::ONE;
 
-        assert_eq!(one.crt(), Pow2CyclotomicPolyRingNTT::<131072, 1024>::ONE)
+        assert_eq!(one.crt(), RqNTT::ONE)
     }
 
     #[test]
     fn test_intt_one() {
-        let one = Pow2CyclotomicPolyRingNTT::<131072, 1024>::ONE;
+        let one = RqNTT::ONE;
 
-        assert_eq!(one.icrt(), Pow2CyclotomicPolyRing::<131072, 1024>::ONE)
+        assert_eq!(one.icrt(), RqPoly::ONE)
     }
     #[test]
     #[allow(clippy::erasing_op)]
     fn test_primitive_ops() {
         use ark_std::One;
         use ark_std::Zero;
-        type R = Pow2CyclotomicPolyRing<131072, 1024>;
+        type R = RqPoly;
         assert_eq!(R::one() + 1u32, R::one() + R::one());
         assert_eq!(R::one() * 1u32, R::one());
         assert_eq!(R::one() * 0u32, R::zero());
