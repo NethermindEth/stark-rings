@@ -73,7 +73,7 @@ impl<R: Ring> DenseMultilinearExtension<R> {
 
     /// Takes n_vars and a dense slice and returns its dense MLE.
     pub fn from_slice(n_vars: usize, v: &[R]) -> Self {
-        let v_padded: Vec<R> = if v.len() != (1 << n_vars) {
+        let v_padded: Vec<R> = if v.len() < (1 << n_vars) {
             // pad to 2^n_vars
             [
                 v.to_owned(),
@@ -86,6 +86,14 @@ impl<R: Ring> DenseMultilinearExtension<R> {
             v.to_owned()
         };
         DenseMultilinearExtension::<R>::from_evaluations_vec(n_vars, v_padded)
+    }
+
+    /// Takes n_vars and a dense vector and returns its dense MLE.
+    pub fn from_vec(n_vars: usize, mut v: Vec<R>) -> Self {
+        if v.len() < (1 << n_vars) {
+            v.resize(1 << n_vars, R::zero());
+        }
+        DenseMultilinearExtension::<R>::from_evaluations_vec(n_vars, v)
     }
 
     pub fn relabel_in_place(&mut self, mut a: usize, mut b: usize, k: usize) {
