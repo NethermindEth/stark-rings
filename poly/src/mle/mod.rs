@@ -11,7 +11,7 @@ use ark_std::{
 };
 use rand::Rng;
 
-use lattirust_ring::Ring;
+use stark_rings::Ring;
 
 /// This trait describes an interface for the multilinear extension
 /// of an array.

@@ -13,9 +13,9 @@ license = "MIT OR Apache-2.0"
 version = "0.0.1-alpha"
 
 [workspace.dependencies]
-lattirust-ring = { path = "./ring", default-features = false }
-lattirust-poly = { path = "./poly", default-features = false }
-lattirust-linear-algebra = { path = "./linear_algebra", default-features = false }
+stark-rings = { path = "./ring", default-features = false }
+stark-rings-poly = { path = "./poly", default-features = false }
+stark-rings-linalg = { path = "./linear_algebra", default-features = false }
 ark-ff = "0.4"
 ark-serialize = { version = "0.4", features = ["derive"] }
 ark-std = { version = "0.4", default-features = false }

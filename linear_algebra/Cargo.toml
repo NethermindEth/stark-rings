@@ -1,5 +1,5 @@
 [package]
-name = "lattirust-linear-algebra"
+name = "stark-rings-linalg"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
