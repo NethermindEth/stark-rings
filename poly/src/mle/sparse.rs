@@ -8,13 +8,13 @@ use ark_std::{
     ops::{Add, AddAssign, Index, Neg, Sub, SubAssign},
     vec::*,
 };
-use lattirust_linear_algebra::SparseMatrix;
 use rand::Rng;
 #[cfg(feature = "parallel")]
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use stark_rings_linalg::SparseMatrix;
 
 use super::{swap_bits, MultilinearExtension};
-use lattirust_ring::Ring;
+use stark_rings::Ring;
 
 #[cfg(feature = "std")]
 use ark_std::collections::HashMap;
@@ -395,7 +395,7 @@ mod tests {
     use super::*;
 
     use ark_ff::Zero;
-    use lattirust_ring::cyclotomic_ring::models::goldilocks::Fq;
+    use stark_rings::cyclotomic_ring::models::goldilocks::Fq;
 
     // Function to convert usize to a binary vector of Ring elements.
     fn usize_to_binary_vector<R: Ring>(n: usize, dimensions: usize) -> Vec<R> {

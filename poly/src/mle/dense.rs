@@ -8,12 +8,12 @@ use ark_std::{
     ops::{Add, AddAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::*,
 };
-use lattirust_linear_algebra::SparseMatrix;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+use stark_rings_linalg::SparseMatrix;
 
 use super::{swap_bits, MultilinearExtension};
-use lattirust_ring::Ring;
+use stark_rings::Ring;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default, CanonicalDeserialize, CanonicalSerialize)]
 pub struct DenseMultilinearExtension<Rn: Ring> {

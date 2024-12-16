@@ -10,7 +10,7 @@ use rayon::prelude::{IndexedParallelIterator, IntoParallelRefMutIterator, Parall
 use super::{util::get_batched_nv, ArithErrors, RefCounter};
 pub use crate::mle::DenseMultilinearExtension;
 use crate::mle::MultilinearExtension;
-use lattirust_ring::Ring;
+use stark_rings::Ring;
 
 /// Sample a random list of multilinear polynomials.
 /// Returns

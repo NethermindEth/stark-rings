@@ -394,61 +394,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lattirust-linear-algebra"
-version = "0.0.1-alpha"
-dependencies = [
- "ark-ff",
- "ark-serialize",
- "ark-std",
- "delegate",
- "derive_more",
- "nalgebra",
- "num-integer",
- "rand",
- "rayon",
- "serde",
-]
-
-[[package]]
-name = "lattirust-poly"
-version = "0.0.1-alpha"
-dependencies = [
- "ark-ff",
- "ark-serialize",
- "ark-std",
- "displaydoc",
- "hashbrown 0.15.1",
- "lattirust-linear-algebra",
- "lattirust-ring",
- "rand",
- "rayon",
- "thiserror",
-]
-
-[[package]]
-name = "lattirust-ring"
-version = "0.0.1-alpha"
-dependencies = [
- "ark-crypto-primitives",
- "ark-ff",
- "ark-poly",
- "ark-serialize",
- "ark-std",
- "delegate",
- "derive_more",
- "lattirust-linear-algebra",
- "num-bigint",
- "num-integer",
- "num-traits",
- "rand",
- "rand_chacha",
- "rayon",
- "serde",
- "serde_with",
- "zeroize",
-]
-
-[[package]]
 name = "libc"
 version = "0.2.164"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -706,6 +651,61 @@ dependencies = [
  "num-traits",
  "paste",
  "wide",
+]
+
+[[package]]
+name = "stark-rings"
+version = "0.0.1-alpha"
+dependencies = [
+ "ark-crypto-primitives",
+ "ark-ff",
+ "ark-poly",
+ "ark-serialize",
+ "ark-std",
+ "delegate",
+ "derive_more",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "rand",
+ "rand_chacha",
+ "rayon",
+ "serde",
+ "serde_with",
+ "stark-rings-linalg",
+ "zeroize",
+]
+
+[[package]]
+name = "stark-rings-linalg"
+version = "0.0.1-alpha"
+dependencies = [
+ "ark-ff",
+ "ark-serialize",
+ "ark-std",
+ "delegate",
+ "derive_more",
+ "nalgebra",
+ "num-integer",
+ "rand",
+ "rayon",
+ "serde",
+]
+
+[[package]]
+name = "stark-rings-poly"
+version = "0.0.1-alpha"
+dependencies = [
+ "ark-ff",
+ "ark-serialize",
+ "ark-std",
+ "displaydoc",
+ "hashbrown 0.15.1",
+ "rand",
+ "rayon",
+ "stark-rings",
+ "stark-rings-linalg",
+ "thiserror",
 ]
 
 [[package]]

@@ -1,6 +1,6 @@
 use ark_std::vec::*;
-use lattirust_linear_algebra::{Matrix, Vector};
 use num_bigint::BigUint;
+use stark_rings_linalg::{Matrix, Vector};
 
 use crate::{PolyRing, Ring};
 

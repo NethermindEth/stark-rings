@@ -12,7 +12,7 @@ use rayon::prelude::*;
 
 use crate::{PolyRing, Ring};
 use convertible_ring::ConvertibleRing;
-use lattirust_linear_algebra::{
+use stark_rings_linalg::{
     ops::{rounded_div, Transpose},
     Matrix, RowVector, SymmetricMatrix, Vector,
 };
