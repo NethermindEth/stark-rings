@@ -3,7 +3,7 @@ use core::ops::IndexMut;
 use ark_ff::Zero;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
-    borrow::ToOwned,
+    borrow::Cow,
     cfg_iter, log2,
     ops::{Add, AddAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::*,
@@ -17,15 +17,87 @@ use stark_rings::Ring;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default, CanonicalDeserialize, CanonicalSerialize)]
 pub struct DenseMultilinearExtension<Rn: Ring> {
-    /// The evaluation over {0,1}^`num_vars`
+    /// The evaluation over {0,1}^`num_vars`.
     pub evaluations: Vec<Rn>,
-    /// Number of variables
+    /// Number of variables.
     pub num_vars: usize,
+    /// Extended length (= 2^num_vars).
+    pub elen: usize,
+    /// Zero element for OOB access.
+    zero: Rn,
 }
 
+/// Representation of a dense multilinear extension (MLE).
 impl<R: Ring> DenseMultilinearExtension<R> {
+    /// Create a [`DenseMultilinearExtension`] from the input slice containing all evaluations.
+    ///
+    /// Only the evaluations until the last non-zero element are kept.
     pub fn from_evaluations_slice(num_vars: usize, evaluations: &[R]) -> Self {
-        Self::from_evaluations_vec(num_vars, evaluations.to_vec())
+        let elen = 1 << num_vars;
+        // Length till last non-zero element
+        let nzl = evaluations
+            .iter()
+            .enumerate()
+            .rev()
+            .find(|e| !e.1.is_zero())
+            .map(|(i, _)| i + 1)
+            .unwrap_or(0);
+        let mut vec = Vec::with_capacity(nzl);
+        vec.extend(evaluations);
+
+        Self {
+            num_vars,
+            evaluations: vec,
+            zero: R::zero(),
+            elen,
+        }
+    }
+
+    /// Create a [`DenseMultilinearExtension`] from the input vector containing all evaluations.
+    ///
+    /// The input vector is then truncated and shrunk to the last non-zero element.
+    pub fn from_evaluations_vec(num_vars: usize, evaluations: Vec<R>) -> Self {
+        let elen = 1 << num_vars;
+
+        let mut dmle = Self {
+            num_vars,
+            evaluations,
+            zero: R::zero(),
+            elen,
+        };
+        dmle.truncate_lnze();
+
+        dmle
+    }
+
+    /// Create a [`DenseMultilinearExtension`] from the input vector containing all evaluations.
+    ///
+    /// The input vector is then resized to 2^num_vars.
+    pub fn from_evaluations_vec_padded(num_vars: usize, mut evaluations: Vec<R>) -> Self {
+        let elen = 1 << num_vars;
+        evaluations.resize(elen, R::zero());
+
+        Self {
+            num_vars,
+            evaluations,
+            zero: R::zero(),
+            elen,
+        }
+    }
+
+    /// Truncates and shrinks the evaluations vector to the last non-zero element.
+    pub fn truncate_lnze(&mut self) {
+        // Length till last non-zero element
+        let nzl = self
+            .evaluations
+            .iter()
+            .enumerate()
+            .rev()
+            .find(|e| !e.1.is_zero())
+            .map(|(i, _)| i + 1)
+            .unwrap_or(0);
+        self.evaluations.truncate(nzl);
+        self.evaluations.shrink_to_fit();
     }
 
     pub fn evaluate(&self, point: &[R]) -> Option<R> {
@@ -33,20 +105,6 @@ impl<R: Ring> DenseMultilinearExtension<R> {
             Some(self.fixed_variables(point)[0])
         } else {
             None
-        }
-    }
-
-    pub fn from_evaluations_vec(num_vars: usize, evaluations: Vec<R>) -> Self {
-        // assert that the number of variables matches the size of evaluations
-        assert_eq!(
-            evaluations.len(),
-            1 << num_vars,
-            "The size of evaluations should be 2^num_vars."
-        );
-
-        Self {
-            num_vars,
-            evaluations,
         }
     }
 
@@ -68,32 +126,7 @@ impl<R: Ring> DenseMultilinearExtension<R> {
         }
 
         // convert the dense vector into a mle
-        Self::from_slice(n_vars, &v)
-    }
-
-    /// Takes n_vars and a dense slice and returns its dense MLE.
-    pub fn from_slice(n_vars: usize, v: &[R]) -> Self {
-        let v_padded: Vec<R> = if v.len() < (1 << n_vars) {
-            // pad to 2^n_vars
-            [
-                v.to_owned(),
-                ark_std::iter::repeat(R::zero())
-                    .take((1 << n_vars) - v.len())
-                    .collect(),
-            ]
-            .concat()
-        } else {
-            v.to_owned()
-        };
-        DenseMultilinearExtension::<R>::from_evaluations_vec(n_vars, v_padded)
-    }
-
-    /// Takes n_vars and a dense vector and returns its dense MLE.
-    pub fn from_vec(n_vars: usize, mut v: Vec<R>) -> Self {
-        if v.len() < (1 << n_vars) {
-            v.resize(1 << n_vars, R::zero());
-        }
-        DenseMultilinearExtension::<R>::from_evaluations_vec(n_vars, v)
+        Self::from_evaluations_vec(n_vars, v)
     }
 
     pub fn relabel_in_place(&mut self, mut a: usize, mut b: usize, k: usize) {
@@ -136,25 +169,27 @@ impl<R: Ring> MultilinearExtension<R> for DenseMultilinearExtension<R> {
             "too many partial points"
         );
 
-        let poly = &mut self.evaluations;
         let nv = self.num_vars;
         let dim = partial_point.len();
 
-        for i in 1..dim + 1 {
-            let r = partial_point[i - 1];
-            for b in 0..1 << (nv - i) {
-                let left = poly[b << 1];
-                let right = poly[(b << 1) + 1];
-                let a = right - left;
-                if !a.is_zero() {
-                    poly[b] = left + r * a;
-                } else {
-                    poly[b] = left;
-                };
+        if !self.evaluations.is_empty() {
+            for i in 1..dim + 1 {
+                let r = partial_point[i - 1];
+                for b in 0..1 << (nv - i) {
+                    let left = self[b << 1];
+                    let right = self[(b << 1) + 1];
+                    let a = right - left;
+                    if !a.is_zero() {
+                        self[b] = left + r * a;
+                    } else {
+                        self[b] = left;
+                    };
+                }
             }
         }
 
-        self.evaluations.truncate(1 << (nv - dim));
+        self.elen = 1 << (nv - dim);
+        self.evaluations.truncate(self.elen);
         self.num_vars = nv - dim;
     }
 
@@ -165,7 +200,7 @@ impl<R: Ring> MultilinearExtension<R> for DenseMultilinearExtension<R> {
     }
 
     fn to_evaluations(&self) -> Vec<R> {
-        self.evaluations.to_vec()
+        self.evaluations.clone()
     }
 }
 
@@ -173,12 +208,14 @@ impl<R: Ring> Zero for DenseMultilinearExtension<R> {
     fn zero() -> Self {
         Self {
             num_vars: 0,
-            evaluations: vec![R::zero()],
+            evaluations: vec![],
+            zero: R::zero(),
+            elen: 0,
         }
     }
 
     fn is_zero(&self) -> bool {
-        self.num_vars == 0 && self.evaluations[0].is_zero()
+        self.num_vars == 0 && self.evaluations.is_empty()
     }
 }
 
@@ -207,7 +244,14 @@ impl<'a, R: Ring> Add<&'a DenseMultilinearExtension<R>> for &DenseMultilinearExt
             "trying to add two dense MLEs with different numbers of variables"
         );
 
-        let result: Vec<R> = cfg_iter!(self.evaluations)
+        let self_evals = if self.evaluations.len() < rhs.evaluations.len() {
+            let mut evals = self.evaluations.clone();
+            evals.resize(rhs.evaluations.len(), R::zero());
+            Cow::Owned(evals)
+        } else {
+            Cow::Borrowed(&self.evaluations)
+        };
+        let result = cfg_iter!(self_evals)
             .zip(cfg_iter!(rhs.evaluations))
             .map(|(a, b)| *a + b)
             .collect();
@@ -238,6 +282,9 @@ impl<'a, R: Ring> AddAssign<&'a DenseMultilinearExtension<R>> for DenseMultiline
             "trying to add two dense MLEs with different numbers of variables"
         );
 
+        if self.evaluations.len() < rhs.evaluations.len() {
+            self.evaluations.resize(rhs.evaluations.len(), R::zero());
+        }
         cfg_iter_mut!(self.evaluations)
             .zip(cfg_iter!(rhs.evaluations))
             .for_each(|(a, b)| a.add_assign(b));
@@ -266,6 +313,9 @@ where
             "trying to add two dense MLEs with different numbers of variables"
         );
 
+        if self.evaluations.len() < other.evaluations.len() {
+            self.evaluations.resize(other.evaluations.len(), R::zero());
+        }
         cfg_iter_mut!(self.evaluations)
             .zip(cfg_iter!(other.evaluations))
             .for_each(|(a, b)| a.add_assign(r * b));
@@ -307,7 +357,14 @@ impl<'a, R: Ring> Sub<&'a DenseMultilinearExtension<R>> for &DenseMultilinearExt
             "trying to subtract two dense MLEs with different numbers of variables"
         );
 
-        let result: Vec<R> = cfg_iter!(self.evaluations)
+        let self_evals = if self.evaluations.len() < rhs.evaluations.len() {
+            let mut evals = self.evaluations.clone();
+            evals.resize(rhs.evaluations.len(), R::zero());
+            Cow::Owned(evals)
+        } else {
+            Cow::Borrowed(&self.evaluations)
+        };
+        let result = cfg_iter!(self_evals)
             .zip(cfg_iter!(rhs.evaluations))
             .map(|(a, b)| *a - b)
             .collect();
@@ -338,6 +395,9 @@ impl<'a, R: Ring> SubAssign<&'a DenseMultilinearExtension<R>> for DenseMultiline
             "trying to subtract two dense MLEs with different numbers of variables"
         );
 
+        if self.evaluations.len() < rhs.evaluations.len() {
+            self.evaluations.resize(self.evaluations.len(), R::zero());
+        }
         cfg_iter_mut!(self.evaluations)
             .zip(cfg_iter!(rhs.evaluations))
             .for_each(|(a, b)| a.sub_assign(b));
@@ -384,12 +444,21 @@ impl<R: Ring> Index<usize> for DenseMultilinearExtension<R> {
     type Output = R;
 
     fn index(&self, index: usize) -> &Self::Output {
-        &self.evaluations[index]
+        if index < self.evaluations.len() {
+            &self.evaluations[index]
+        } else {
+            &self.zero
+        }
     }
 }
 
 impl<R: Ring> IndexMut<usize> for DenseMultilinearExtension<R> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.evaluations[index]
+        if index < self.evaluations.len() {
+            &mut self.evaluations[index]
+        } else {
+            self.evaluations.resize(self.elen, R::zero());
+            &mut self.evaluations[index]
+        }
     }
 }
