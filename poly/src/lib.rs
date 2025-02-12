@@ -6,4 +6,5 @@ extern crate ark_std;
 extern crate core;
 
 pub mod mle;
+pub mod univariate;
 pub mod polynomials;
