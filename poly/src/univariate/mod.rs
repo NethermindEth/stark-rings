@@ -1,3 +1,8 @@
+// Copyright 2022 arkworks contributors
+// This file is part of the arkworks/algebra library.
+
+// Adapted for rings by Nethermind
+
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt::Debug,
