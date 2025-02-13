@@ -106,19 +106,9 @@ impl<Rn: Ring> DenseUVPolynomial<Rn> for DensePolynomial<Rn> {
     }
 
     /// Outputs a univariate polynomial of degree `d` where each non-leading
-    /// coefficient is sampled uniformly at random from `F` and the leading
+    /// coefficient is sampled uniformly at random from `Rn` and the leading
     /// coefficient is sampled uniformly at random from among the non-zero
-    /// elements of `F`.
-    ///
-    /// # Example
-    /// ```
-    /// use ark_std::test_rng;
-    /// use ark_test_curves::bls12_381::Fr;
-    /// use ark_poly::{univariate::DensePolynomial, Polynomial, DenseUVPolynomial};
-    ///
-    /// let rng = &mut test_rng();
-    /// let poly = DensePolynomial::<Fr>::rand(8, rng);
-    /// assert_eq!(poly.degree(), 8);
+    /// elements of `Rn`.
     /// ```
     fn rand<R: Rng>(d: usize, rng: &mut R) -> Self {
         let mut random_coeffs = Vec::new();
@@ -387,7 +377,7 @@ impl<Rn: Ring> Mul<Rn> for DensePolynomial<Rn> {
     }
 }
 
-/// Performs O(nlogn) multiplication of polynomials if F is smooth.
+/// Performs O(nlogn) multiplication of polynomials if Rn is smooth.
 impl<'a, Rn: Ring> Mul<&'a DensePolynomial<Rn>> for &DensePolynomial<Rn> {
     type Output = DensePolynomial<Rn>;
 
@@ -403,29 +393,29 @@ impl<'a, Rn: Ring> Mul<&'a DensePolynomial<Rn>> for &DensePolynomial<Rn> {
 
 macro_rules! impl_op {
     ($trait:ident, $method:ident, $ring_bound:ident) => {
-        impl<F: $ring_bound> $trait<DensePolynomial<F>> for DensePolynomial<F> {
-            type Output = DensePolynomial<F>;
+        impl<R: $ring_bound> $trait<DensePolynomial<R>> for DensePolynomial<R> {
+            type Output = DensePolynomial<R>;
 
             #[inline]
-            fn $method(self, other: DensePolynomial<F>) -> DensePolynomial<F> {
+            fn $method(self, other: DensePolynomial<R>) -> DensePolynomial<R> {
                 (&self).$method(&other)
             }
         }
 
-        impl<'a, F: $ring_bound> $trait<&'a DensePolynomial<F>> for DensePolynomial<F> {
-            type Output = DensePolynomial<F>;
+        impl<'a, R: $ring_bound> $trait<&'a DensePolynomial<R>> for DensePolynomial<R> {
+            type Output = DensePolynomial<R>;
 
             #[inline]
-            fn $method(self, other: &'a DensePolynomial<F>) -> DensePolynomial<F> {
+            fn $method(self, other: &'a DensePolynomial<R>) -> DensePolynomial<R> {
                 (&self).$method(other)
             }
         }
 
-        impl<'a, F: $ring_bound> $trait<DensePolynomial<F>> for &'a DensePolynomial<F> {
-            type Output = DensePolynomial<F>;
+        impl<'a, R: $ring_bound> $trait<DensePolynomial<R>> for &'a DensePolynomial<R> {
+            type Output = DensePolynomial<R>;
 
             #[inline]
-            fn $method(self, other: DensePolynomial<F>) -> DensePolynomial<F> {
+            fn $method(self, other: DensePolynomial<R>) -> DensePolynomial<R> {
                 self.$method(&other)
             }
         }
@@ -447,3 +437,665 @@ impl<Rn: Ring> Zero for DensePolynomial<Rn> {
 impl_op!(Add, add, Ring);
 impl_op!(Sub, sub, Ring);
 impl_op!(Mul, mul, Ring);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ark_ff::{Fp64, MontBackend, MontConfig};
+    use ark_ff::{One, UniformRand};
+    use ark_std::{rand::Rng, test_rng};
+    use stark_rings::cyclotomic_ring::models::goldilocks::RqNTT;
+
+    // fn rand_sparse_poly<R: Rng>(degree: usize, rng: &mut R) -> SparsePolynomial<RqNTT> {
+    //     // Initialize coeffs so that its guaranteed to have a x^{degree} term
+    //     let mut coeffs = vec![(degree, RqNTT::rand(rng))];
+    //     for i in 0..degree {
+    //         if !rng.gen_bool(0.8) {
+    //             coeffs.push((i, RqNTT::rand(rng)));
+    //         }
+    //     }
+    //     SparsePolynomial::from_coefficients_vec(coeffs)
+    // }
+
+    #[test]
+    fn rand_dense_poly_degree() {
+        let rng = &mut test_rng();
+
+        // if the leading coefficient were uniformly sampled from all of F, this
+        // test would fail with high probability ~99.9%
+        for i in 1..=30 {
+            assert_eq!(DensePolynomial::<RqNTT>::rand(i, rng).degree(), i);
+        }
+    }
+
+    #[test]
+    fn double_polynomials_random() {
+        let rng = &mut test_rng();
+        for degree in 0..70 {
+            let p = DensePolynomial::<RqNTT>::rand(degree, rng);
+            let p_double = &p + &p;
+            let p_quad = &p_double + &p_double;
+            assert_eq!(&(&(&p + &p) + &p) + &p, p_quad);
+        }
+    }
+
+    #[test]
+    fn add_polynomials() {
+        let rng = &mut test_rng();
+        for a_degree in 0..70 {
+            for b_degree in 0..70 {
+                let p1 = DensePolynomial::<RqNTT>::rand(a_degree, rng);
+                let p2 = DensePolynomial::<RqNTT>::rand(b_degree, rng);
+                let res1 = &p1 + &p2;
+                let res2 = &p2 + &p1;
+                assert_eq!(res1, res2);
+            }
+        }
+    }
+
+    #[test]
+    // fn add_sparse_polynomials() {
+    //     let rng = &mut test_rng();
+    //     for a_degree in 0..70 {
+    //         for b_degree in 0..70 {
+    //             let p1 = DensePolynomial::<RqNTT>::rand(a_degree, rng);
+    //             let p2 = rand_sparse_poly(b_degree, rng);
+    //             let res = &p1 + &p2;
+    //             assert_eq!(res, &p1 + &Into::<DensePolynomial<RqNTT>>::into(p2));
+    //         }
+    //     }
+    // }
+
+    // #[test]
+    // fn add_assign_sparse_polynomials() {
+    //     let rng = &mut test_rng();
+    //     for a_degree in 0..70 {
+    //         for b_degree in 0..70 {
+    //             let p1 = DensePolynomial::<RqNTT>::rand(a_degree, rng);
+    //             let p2 = rand_sparse_poly(b_degree, rng);
+
+    //             let mut res = p1.clone();
+    //             res += &p2;
+    //             assert_eq!(res, &p1 + &Into::<DensePolynomial<RqNTT>>::into(p2));
+    //         }
+    //     }
+    // }
+    #[test]
+    fn add_polynomials_with_mul() {
+        let rng = &mut test_rng();
+        for a_degree in 0..70 {
+            for b_degree in 0..70 {
+                let mut p1 = DensePolynomial::rand(a_degree, rng);
+                let p2 = DensePolynomial::rand(b_degree, rng);
+                let f = RqNTT::rand(rng);
+                let f_p2 = DensePolynomial::from_coefficients_vec(
+                    p2.coeffs.iter().map(|c| f * c).collect(),
+                );
+                let res2 = &f_p2 + &p1;
+                p1 += (f, &p2);
+                let res1 = p1;
+                assert_eq!(res1, res2);
+            }
+        }
+    }
+
+    #[test]
+    fn sub_polynomials() {
+        let rng = &mut test_rng();
+        for a_degree in 0..70 {
+            for b_degree in 0..70 {
+                let p1 = DensePolynomial::<RqNTT>::rand(a_degree, rng);
+                let p2 = DensePolynomial::<RqNTT>::rand(b_degree, rng);
+                let res1 = &p1 - &p2;
+                let res2 = &p2 - &p1;
+                assert_eq!(&res1 + &p2, p1);
+                assert_eq!(res1, -res2);
+            }
+        }
+    }
+
+    // #[test]
+    // fn sub_sparse_polynomials() {
+    //     let rng = &mut test_rng();
+    //     for a_degree in 0..70 {
+    //         for b_degree in 0..70 {
+    //             let p1 = DensePolynomial::<RqNTT>::rand(a_degree, rng);
+    //             let p2 = rand_sparse_poly(b_degree, rng);
+    //             let res = &p1 - &p2;
+    //             assert_eq!(res, &p1 - &Into::<DensePolynomial<RqNTT>>::into(p2));
+    //         }
+    //     }
+    // }
+
+    // #[test]
+    // fn sub_assign_sparse_polynomials() {
+    //     let rng = &mut test_rng();
+    //     for a_degree in 0..70 {
+    //         for b_degree in 0..70 {
+    //             let p1 = DensePolynomial::<RqNTT>::rand(a_degree, rng);
+    //             let p2 = rand_sparse_poly(b_degree, rng);
+
+    //             let mut res = p1.clone();
+    //             res -= &p2;
+    //             assert_eq!(res, &p1 - &Into::<DensePolynomial<RqNTT>>::into(p2));
+    //         }
+    //     }
+    // }
+
+    #[test]
+    fn polynomial_additive_identity() {
+        // Test adding polynomials with its negative equals 0
+        let mut rng = test_rng();
+        for degree in 0..70 {
+            let poly = DensePolynomial::<RqNTT>::rand(degree, &mut rng);
+            let neg = -poly.clone();
+            let result = poly + neg;
+            assert!(result.is_zero());
+            assert_eq!(result.degree(), 0);
+
+            // Test with SubAssign trait
+            let poly = DensePolynomial::<RqNTT>::rand(degree, &mut rng);
+            let mut result = poly.clone();
+            result -= &poly;
+            assert!(result.is_zero());
+            assert_eq!(result.degree(), 0);
+        }
+    }
+
+    #[test]
+    fn evaluate_polynomials() {
+        let rng = &mut test_rng();
+        for a_degree in 0..70 {
+            let p = DensePolynomial::rand(a_degree, rng);
+            let point: RqNTT = RqNTT::rand(rng);
+            let mut total = RqNTT::zero();
+            for (i, coeff) in p.coeffs.iter().enumerate() {
+                total += &(point.pow([i as u64]) * coeff);
+            }
+            assert_eq!(p.evaluate(&point), total);
+        }
+    }
+
+    #[test]
+    fn mul_random_element() {
+        let rng = &mut test_rng();
+        for degree in 0..70 {
+            let a = DensePolynomial::<RqNTT>::rand(degree, rng);
+            let e = RqNTT::rand(rng);
+            assert_eq!(
+                &a * e,
+                a.naive_mul(&DensePolynomial::from_coefficients_slice(&[e]))
+            )
+        }
+    }
+
+    // #[test]
+    // fn mul_polynomials_random() {
+    //     let rng = &mut test_rng();
+    //     for a_degree in 0..70 {
+    //         for b_degree in 0..70 {
+    //             let a = DensePolynomial::<RqNTT>::rand(a_degree, rng);
+    //             let b = DensePolynomial::<RqNTT>::rand(b_degree, rng);
+    //             assert_eq!(&a * &b, a.naive_mul(&b))
+    //         }
+    //     }
+    // }
+
+    // #[test]
+    // fn test_leading_zero() {
+    //     let n = 10;
+    //     let rand_poly = DensePolynomial::rand(n, &mut test_rng());
+    //     let coefficients = rand_poly.coeffs.clone();
+    //     let leading_coefficient: RqNTT = coefficients[n];
+
+    //     let negative_leading_coefficient = -leading_coefficient;
+    //     let inverse_leading_coefficient = leading_coefficient.inverse().unwrap();
+
+    //     let mut inverse_coefficients = coefficients.clone();
+    //     inverse_coefficients[n] = inverse_leading_coefficient;
+
+    //     let mut negative_coefficients = coefficients;
+    //     negative_coefficients[n] = negative_leading_coefficient;
+
+    //     let negative_poly = DensePolynomial::from_coefficients_vec(negative_coefficients);
+    //     let inverse_poly = DensePolynomial::from_coefficients_vec(inverse_coefficients);
+
+    //     let x = &inverse_poly * &rand_poly;
+    //     assert_eq!(x.degree(), 2 * n);
+    //     assert!(!x.coeffs.last().unwrap().is_zero());
+
+    //     let y = &negative_poly + &rand_poly;
+    //     assert_eq!(y.degree(), n - 1);
+    //     assert!(!y.coeffs.last().unwrap().is_zero());
+    // }
+
+    #[test]
+    fn test_add_assign_with_zero_self() {
+        // Create a polynomial poly1 which is a zero polynomial
+        let mut poly1 = DensePolynomial::<RqNTT> { coeffs: Vec::new() };
+
+        // Create another polynomial poly2, which is: 2 + 3x (coefficients [2, 3])
+        let poly2 = DensePolynomial {
+            coeffs: vec![RqNTT::from(2 as u32), RqNTT::from(3 as u32)],
+        };
+
+        // Add poly2 to the zero polynomial
+        // Since poly1 is zero, it should just take the coefficients of poly2.
+        poly1 += (RqNTT::one(), &poly2);
+
+        // After addition, poly1 should be equal to poly2
+        assert_eq!(
+            poly1.coeffs,
+            vec![RqNTT::from(2 as u32), RqNTT::from(3 as u32)]
+        );
+    }
+
+    #[test]
+    fn test_add_assign_with_zero_other() {
+        // Create a polynomial poly1: 2 + 3x (coefficients [2, 3])
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![RqNTT::from(2 as u32), RqNTT::from(3 as u32)],
+        };
+
+        // Create an empty polynomial poly2 (zero polynomial)
+        let poly2 = DensePolynomial::<RqNTT> { coeffs: Vec::new() };
+
+        // Add zero polynomial poly2 to poly1.
+        // Since poly2 is zero, poly1 should remain unchanged.
+        poly1 += (RqNTT::one(), &poly2);
+
+        // After addition, poly1 should still be [2, 3]
+        assert_eq!(
+            poly1.coeffs,
+            vec![RqNTT::from(2 as u32), RqNTT::from(3 as u32)]
+        );
+    }
+
+    #[test]
+    fn test_add_assign_with_different_degrees() {
+        // Create polynomial poly1: 1 + 2x + 3x^2 (coefficients [1, 2, 3])
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![RqNTT::one(), RqNTT::from(2 as u32), RqNTT::from(3 as u32)],
+        };
+
+        // Create another polynomial poly2: 4 + 5x (coefficients [4, 5])
+        let poly2 = DensePolynomial {
+            coeffs: vec![RqNTT::from(4 as u32), RqNTT::from(5 as u32)],
+        };
+
+        // Add poly2 to poly1.
+        // poly1 is degree 2, poly2 is degree 1, so poly2 will be padded with a zero
+        // to match the degree of poly1.
+        poly1 += (RqNTT::one(), &poly2);
+
+        // After addition, the result should be:
+        // 5 + 7x + 3x^2 (coefficients [5, 7, 3])
+        assert_eq!(
+            poly1.coeffs,
+            vec![
+                RqNTT::from(5 as u32),
+                RqNTT::from(7 as u32),
+                RqNTT::from(3 as u32)
+            ]
+        );
+    }
+
+    #[test]
+    fn test_add_assign_with_equal_degrees() {
+        // Create polynomial poly1: 1 + 2x + 3x^2 (coefficients [1, 2, 3])
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![RqNTT::one(), RqNTT::from(2 as u32), RqNTT::from(3 as u32)],
+        };
+
+        // Create polynomial poly2: 4 + 5x + 6x^2 (coefficients [4, 5, 6])
+        let poly2 = DensePolynomial {
+            coeffs: vec![
+                RqNTT::from(4 as u32),
+                RqNTT::from(5 as u32),
+                RqNTT::from(6 as u32),
+            ],
+        };
+
+        // Add poly2 to poly1.
+        // Since both polynomials have the same degree, we can directly add corresponding terms.
+        poly1 += (RqNTT::one(), &poly2);
+
+        // After addition, the result should be:
+        // 5 + 7x + 9x^2 (coefficients [5, 7, 9])
+        assert_eq!(
+            poly1.coeffs,
+            vec![
+                RqNTT::from(5 as u32),
+                RqNTT::from(7 as u32),
+                RqNTT::from(9 as u32)
+            ]
+        );
+    }
+
+    #[test]
+    fn test_add_assign_with_smaller_degrees() {
+        // Create polynomial poly1: 1 + 2x (degree 1)
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![RqNTT::one(), RqNTT::from(2 as u32)],
+        };
+
+        // Create polynomial poly2: 3 + 4x + 5x^2 (degree 2)
+        let poly2 = DensePolynomial {
+            coeffs: vec![
+                RqNTT::from(3 as u32),
+                RqNTT::from(4 as u32),
+                RqNTT::from(5 as u32),
+            ],
+        };
+
+        // Add poly2 to poly1.
+        // poly1 has degree 1, poly2 has degree 2. So poly1 must be padded with zero coefficients
+        // for the higher degree terms to match poly2's degree.
+        poly1 += (RqNTT::one(), &poly2);
+
+        // After addition, the result should be:
+        // 4 + 6x + 5x^2 (coefficients [4, 6, 5])
+        assert_eq!(
+            poly1.coeffs,
+            vec![
+                RqNTT::from(4 as u32),
+                RqNTT::from(6 as u32),
+                RqNTT::from(5 as u32)
+            ]
+        );
+    }
+
+    // #[test]
+    // fn test_add_assign_mixed_with_zero_self() {
+    //     // Create a zero DensePolynomial
+    //     let mut poly1 = DensePolynomial::<RqNTT> { coeffs: Vec::new() };
+
+    //     // Create a SparsePolynomial: 2 + 3x (coefficients [2, 3])
+    //     let poly2 =
+    //         SparsePolynomial::from_coefficients_slice(&[(0, RqNTT::from(2)), (1, RqNTT::from(3))]);
+
+    //     // Add poly2 to the zero polynomial
+    //     poly1 += &poly2;
+
+    //     // After addition, the result should be 2 + 3x
+    //     assert_eq!(poly1.coeffs, vec![RqNTT::from(2), RqNTT::from(3)]);
+    // }
+
+    // #[test]
+    // fn test_add_assign_mixed_with_zero_other() {
+    //     // Create a DensePolynomial: 2 + 3x (coefficients [2, 3])
+    //     let mut poly1 = DensePolynomial {
+    //         coeffs: vec![RqNTT::from(2), RqNTT::from(3)],
+    //     };
+
+    //     // Create a zero SparsePolynomial
+    //     let poly2 = SparsePolynomial::from_coefficients_slice(&[]);
+
+    //     // Add poly2 to poly1
+    //     poly1 += &poly2;
+
+    //     // After addition, the result should still be 2 + 3x
+    //     assert_eq!(poly1.coeffs, vec![RqNTT::from(2), RqNTT::from(3)]);
+    // }
+
+    // #[test]
+    // fn test_add_assign_mixed_with_different_degrees() {
+    //     // Create a DensePolynomial: 1 + 2x + 3x^2 (coefficients [1, 2, 3])
+    //     let mut poly1 = DensePolynomial {
+    //         coeffs: vec![RqNTT::one(), RqNTT::from(2), RqNTT::from(3)],
+    //     };
+
+    //     // Create a SparsePolynomial: 4 + 5x (coefficients [4, 5])
+    //     let poly2 =
+    //         SparsePolynomial::from_coefficients_slice(&[(0, RqNTT::from(4)), (1, RqNTT::from(5))]);
+
+    //     // Add poly2 to poly1
+    //     poly1 += &poly2;
+
+    //     // After addition, the result should be 5 + 7x + 3x^2 (coefficients [5, 7, 3])
+    //     assert_eq!(poly1.coeffs, vec![RqNTT::from(5), RqNTT::from(7), RqNTT::from(3)]);
+    // }
+
+    // #[test]
+    // fn test_add_assign_mixed_with_smaller_degree() {
+    //     // Create a DensePolynomial: 1 + 2x (degree 1)
+    //     let mut poly1 = DensePolynomial {
+    //         coeffs: vec![RqNTT::one(), RqNTT::from(2)],
+    //     };
+
+    //     // Create a SparsePolynomial: 3 + 4x + 5x^2 (degree 2)
+    //     let poly2 = SparsePolynomial::from_coefficients_slice(&[
+    //         (0, RqNTT::from(3)),
+    //         (1, RqNTT::from(4)),
+    //         (2, RqNTT::from(5)),
+    //     ]);
+
+    //     // Add poly2 to poly1
+    //     poly1 += &poly2;
+
+    //     // After addition, the result should be: 4 + 6x + 5x^2 (coefficients [4, 6, 5])
+    //     assert_eq!(poly1.coeffs, vec![RqNTT::from(4), RqNTT::from(6), RqNTT::from(5)]);
+    // }
+
+    // #[test]
+    // fn test_add_assign_mixed_with_equal_degrees() {
+    //     // Create a DensePolynomial: 1 + 2x + 3x^2 (coefficients [1, 2, 3])
+    //     let mut poly1 = DensePolynomial {
+    //         coeffs: vec![RqNTT::one(), RqNTT::from(2), RqNTT::from(3)],
+    //     };
+
+    //     // Create a SparsePolynomial: 4 + 5x + 6x^2 (coefficients [4, 5, 6])
+    //     let poly2 = SparsePolynomial::from_coefficients_slice(&[
+    //         (0, RqNTT::from(4)),
+    //         (1, RqNTT::from(5)),
+    //         (2, RqNTT::from(6)),
+    //     ]);
+
+    //     // Add poly2 to poly1
+    //     poly1 += &poly2;
+
+    //     // After addition, the result should be 5 + 7x + 9x^2 (coefficients [5, 7, 9])
+    //     assert_eq!(poly1.coeffs, vec![RqNTT::from(5), RqNTT::from(7), RqNTT::from(9)]);
+    // }
+
+    // #[test]
+    // fn test_add_assign_mixed_with_larger_degree() {
+    //     // Create a DensePolynomial: 1 + 2x + 3x^2 + 4x^3 (degree 3)
+    //     let mut poly1 = DensePolynomial {
+    //         coeffs: vec![RqNTT::one(), RqNTT::from(2), RqNTT::from(3), RqNTT::from(4)],
+    //     };
+
+    //     // Create a SparsePolynomial: 3 + 4x (degree 1)
+    //     let poly2 =
+    //         SparsePolynomial::from_coefficients_slice(&[(0, RqNTT::from(3)), (1, RqNTT::from(4))]);
+
+    //     // Add poly2 to poly1
+    //     poly1 += &poly2;
+
+    //     // After addition, the result should be: 4 + 6x + 3x^2 + 4x^3 (coefficients [4, 6, 3, 4])
+    //     assert_eq!(
+    //         poly1.coeffs,
+    //         vec![RqNTT::from(4), RqNTT::from(6), RqNTT::from(3), RqNTT::from(4)]
+    //     );
+    // }
+
+    // #[test]
+    // fn test_truncate_leading_zeros_after_addition() {
+    //     // Create a DensePolynomial: 1 + 2x + 3x^2 (coefficients [1, 2, 3])
+    //     let mut poly1 = DensePolynomial {
+    //         coeffs: vec![RqNTT::one(), RqNTT::from(2), RqNTT::from(3)],
+    //     };
+
+    //     // Create a SparsePolynomial: -1 - 2x - 3x^2 (coefficients [-1, -2, -3])
+    //     let poly2 = SparsePolynomial::from_coefficients_slice(&[
+    //         (0, -RqNTT::one()),
+    //         (1, -RqNTT::from(2)),
+    //         (2, -RqNTT::from(3)),
+    //     ]);
+
+    //     // Add poly2 to poly1, which should result in a zero polynomial
+    //     poly1 += &poly2;
+
+    //     // The resulting polynomial should be zero, with an empty coefficient vector
+    //     assert!(poly1.is_zero());
+    //     assert_eq!(poly1.coeffs, vec![]);
+    // }
+
+    // #[test]
+    // fn test_truncate_leading_zeros_after_sparse_addition() {
+    //     // Create a DensePolynomial with leading non-zero coefficients.
+    //     let poly1 = DensePolynomial {
+    //         coeffs: vec![RqNTT::from(3), RqNTT::from(2), RqNTT::one()],
+    //     };
+
+    //     // Create a SparsePolynomial to subtract the coefficients of poly1,
+    //     // leaving trailing zeros after addition.
+    //     let poly2 = SparsePolynomial::from_coefficients_slice(&[
+    //         (0, -RqNTT::from(3)),
+    //         (1, -RqNTT::from(2)),
+    //         (2, -RqNTT::one()),
+    //     ]);
+
+    //     // Perform addition using the Add implementation.
+    //     let result = &poly1 + &poly2;
+
+    //     // Assert that the resulting polynomial is zero.
+    //     assert!(result.is_zero(), "The resulting polynomial should be zero.");
+    //     assert_eq!(result.coeffs, vec![], "Leading zeros were not truncated.");
+    // }
+
+    #[test]
+    fn test_dense_dense_add_assign_with_zero_self() {
+        // Create a zero polynomial
+        let mut poly1 = DensePolynomial { coeffs: Vec::new() };
+
+        // Create a non-zero polynomial: 2 + 3x
+        let poly2 = DensePolynomial {
+            coeffs: vec![RqNTT::from(2 as u32), RqNTT::from(3 as u32)],
+        };
+
+        // Add the non-zero polynomial to the zero polynomial
+        poly1 += &poly2;
+
+        // Check that poly1 now equals poly2
+        assert_eq!(poly1.coeffs, poly2.coeffs);
+    }
+
+    #[test]
+    fn test_dense_dense_add_assign_with_zero_other() {
+        // Create a non-zero polynomial: 2 + 3x
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![RqNTT::from(2 as u32), RqNTT::from(3 as u32)],
+        };
+
+        // Create a zero polynomial
+        let poly2 = DensePolynomial { coeffs: Vec::new() };
+
+        // Add the zero polynomial to poly1
+        poly1 += &poly2;
+
+        // Check that poly1 remains unchanged
+        assert_eq!(
+            poly1.coeffs,
+            vec![RqNTT::from(2 as u32), RqNTT::from(3 as u32)]
+        );
+    }
+
+    #[test]
+    fn test_dense_dense_add_assign_with_different_degrees() {
+        // Create a polynomial: 1 + 2x + 3x^2
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![RqNTT::one(), RqNTT::from(2 as u32), RqNTT::from(3 as u32)],
+        };
+
+        // Create a smaller polynomial: 4 + 5x
+        let poly2 = DensePolynomial {
+            coeffs: vec![RqNTT::from(4 as u32), RqNTT::from(5 as u32)],
+        };
+
+        // Add the smaller polynomial to the larger one
+        poly1 += &poly2;
+
+        assert_eq!(
+            poly1.coeffs,
+            vec![
+                RqNTT::from(5 as u32),
+                RqNTT::from(7 as u32),
+                RqNTT::from(3 as u32)
+            ]
+        );
+    }
+
+    #[test]
+    fn test_dense_dense_truncate_leading_zeros_after_addition() {
+        // Create a first polynomial
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![RqNTT::one(), RqNTT::from(2 as u32)],
+        };
+
+        // Create another polynomial that will cancel out the first two terms
+        let poly2 = DensePolynomial {
+            coeffs: vec![-poly1.coeffs[0], -poly1.coeffs[1]],
+        };
+
+        // Add the two polynomials
+        poly1 += &poly2;
+
+        // Check that the resulting polynomial is zero (empty coefficients)
+        assert!(poly1.is_zero());
+        assert_eq!(poly1.coeffs, vec![]);
+    }
+
+    #[test]
+    fn test_dense_dense_add_assign_with_equal_degrees() {
+        // Create two polynomials with the same degree
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![RqNTT::one(), RqNTT::from(2 as u32), RqNTT::from(3 as u32)],
+        };
+        let poly2 = DensePolynomial {
+            coeffs: vec![
+                RqNTT::from(4 as u32),
+                RqNTT::from(5 as u32),
+                RqNTT::from(6 as u32),
+            ],
+        };
+
+        // Add the polynomials
+        poly1 += &poly2;
+
+        // Check the resulting coefficients
+        assert_eq!(
+            poly1.coeffs,
+            vec![
+                RqNTT::from(5 as u32),
+                RqNTT::from(7 as u32),
+                RqNTT::from(9 as u32)
+            ]
+        );
+    }
+
+    #[test]
+    fn test_dense_dense_add_assign_with_other_zero_truncates_leading_zeros() {
+        // Create a polynomial with leading zeros: 1 + 2x + 0x^2 + 0x^3
+        let mut poly1 = DensePolynomial {
+            coeffs: vec![
+                RqNTT::one(),
+                RqNTT::from(2 as u32),
+                RqNTT::zero(),
+                RqNTT::zero(),
+            ],
+        };
+
+        // Create a zero polynomial
+        let poly2 = DensePolynomial { coeffs: Vec::new() };
+
+        // Add the zero polynomial to poly1
+        poly1 += &poly2;
+
+        // Check that the leading zeros are truncated
+        assert_eq!(poly1.coeffs, vec![RqNTT::one(), RqNTT::from(2 as u32)]);
+
+        // Ensure the polynomial is not zero (as it has non-zero coefficients)
+        assert!(!poly1.is_zero());
+    }
+}
