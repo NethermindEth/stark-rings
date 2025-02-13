@@ -441,9 +441,8 @@ impl_op!(Mul, mul, Ring);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::{Fp64, MontBackend, MontConfig};
     use ark_ff::{One, UniformRand};
-    use ark_std::{rand::Rng, test_rng};
+    use ark_std::test_rng;
     use stark_rings::cyclotomic_ring::models::goldilocks::RqNTT;
 
     // fn rand_sparse_poly<R: Rng>(degree: usize, rng: &mut R) -> SparsePolynomial<RqNTT> {
@@ -493,7 +492,7 @@ mod tests {
         }
     }
 
-    #[test]
+    // #[test]
     // fn add_sparse_polynomials() {
     //     let rng = &mut test_rng();
     //     for a_degree in 0..70 {
@@ -520,6 +519,7 @@ mod tests {
     //         }
     //     }
     // }
+
     #[test]
     fn add_polynomials_with_mul() {
         let rng = &mut test_rng();
