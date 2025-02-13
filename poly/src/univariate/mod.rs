@@ -14,7 +14,7 @@ use ark_std::{
 use rand::Rng;
 use stark_rings::Ring;
 
-mod dense;
+pub mod dense;
 
 /// Describes the common interface for univariate and multivariate polynomials
 #[allow(clippy::trait_duplication_in_bounds)]
