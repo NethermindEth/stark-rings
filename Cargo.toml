@@ -5,6 +5,7 @@ members = [
     "poly"
 ]
 resolver = "2"
+publish = false
 
 [workspace.package]
 authors = [ "Christian Knabenhans", "Nethermind" ]
