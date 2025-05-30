@@ -1,4 +1,4 @@
-use core::ops::IndexMut;
+use core::{cmp::max, ops::IndexMut};
 
 use ark_ff::Zero;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
@@ -244,15 +244,16 @@ impl<'a, R: Ring> Add<&'a DenseMultilinearExtension<R>> for &DenseMultilinearExt
             "trying to add two dense MLEs with different numbers of variables"
         );
 
-        let self_evals = if self.evaluations.len() < rhs.evaluations.len() {
-            let mut evals = self.evaluations.clone();
-            evals.resize(rhs.evaluations.len(), R::zero());
-            Cow::Owned(evals)
-        } else {
-            Cow::Borrowed(&self.evaluations)
-        };
+        let max_len = max(self.evaluations.len(), rhs.evaluations.len());
+
+        let mut self_evals = self.evaluations.clone();
+        self_evals.resize(max_len, R::zero());
+
+        let mut rhs_evals = rhs.evaluations.clone();
+        rhs_evals.resize(max_len, R::zero());
+
         let result = cfg_iter!(self_evals)
-            .zip(cfg_iter!(rhs.evaluations))
+            .zip(cfg_iter!(rhs_evals))
             .map(|(a, b)| *a + b)
             .collect();
 
