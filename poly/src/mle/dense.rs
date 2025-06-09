@@ -1,9 +1,8 @@
-use core::{cmp::max, ops::IndexMut};
+use core::ops::IndexMut;
 
 use ark_ff::Zero;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
-    borrow::Cow,
     cfg_iter, log2,
     ops::{Add, AddAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign},
     vec::*,
@@ -219,56 +218,18 @@ impl<R: Ring> Zero for DenseMultilinearExtension<R> {
     }
 }
 
-impl<R: Ring> Add for DenseMultilinearExtension<R> {
-    type Output = DenseMultilinearExtension<R>;
+impl<R: Ring> Neg for DenseMultilinearExtension<R> {
+    type Output = Self;
 
-    fn add(self, other: DenseMultilinearExtension<R>) -> Self {
-        &self + &other
-    }
-}
+    fn neg(mut self) -> Self {
+        cfg_iter_mut!(self.evaluations).for_each(|a| *a = a.neg());
 
-impl<'a, R: Ring> Add<&'a DenseMultilinearExtension<R>> for &DenseMultilinearExtension<R> {
-    type Output = DenseMultilinearExtension<R>;
-
-    fn add(self, rhs: &'a DenseMultilinearExtension<R>) -> Self::Output {
-        if rhs.is_zero() {
-            return self.clone();
-        }
-
-        if self.is_zero() {
-            return rhs.clone();
-        }
-
-        assert_eq!(
-            self.num_vars, rhs.num_vars,
-            "trying to add two dense MLEs with different numbers of variables"
-        );
-
-        let max_len = max(self.evaluations.len(), rhs.evaluations.len());
-
-        let mut self_evals = self.evaluations.clone();
-        self_evals.resize(max_len, R::zero());
-
-        let mut rhs_evals = rhs.evaluations.clone();
-        rhs_evals.resize(max_len, R::zero());
-
-        let result = cfg_iter!(self_evals)
-            .zip(cfg_iter!(rhs_evals))
-            .map(|(a, b)| *a + b)
-            .collect();
-
-        Self::Output::from_evaluations_vec(self.num_vars, result)
-    }
-}
-
-impl<R: Ring> AddAssign for DenseMultilinearExtension<R> {
-    fn add_assign(&mut self, rhs: DenseMultilinearExtension<R>) {
-        self.add_assign(&rhs);
+        self
     }
 }
 
 impl<'a, R: Ring> AddAssign<&'a DenseMultilinearExtension<R>> for DenseMultilinearExtension<R> {
-    fn add_assign(&mut self, rhs: &'a DenseMultilinearExtension<R>) {
+    fn add_assign(&mut self, rhs: &'a Self) {
         if self.is_zero() {
             *self = rhs.clone();
             return;
@@ -292,11 +253,35 @@ impl<'a, R: Ring> AddAssign<&'a DenseMultilinearExtension<R>> for DenseMultiline
     }
 }
 
+impl<R: Ring> AddAssign for DenseMultilinearExtension<R> {
+    fn add_assign(&mut self, rhs: Self) {
+        self.add_assign(&rhs);
+    }
+}
+
+impl<R: Ring> Add for DenseMultilinearExtension<R> {
+    type Output = Self;
+
+    fn add(mut self, rhs: Self) -> Self {
+        self += &rhs;
+        self
+    }
+}
+
+impl<'a, R: Ring> Add<&'a DenseMultilinearExtension<R>> for DenseMultilinearExtension<R> {
+    type Output = Self;
+
+    fn add(mut self, rhs: &'a Self) -> Self {
+        self += rhs;
+        self
+    }
+}
+
 impl<R: Ring> AddAssign<(R, &DenseMultilinearExtension<R>)> for DenseMultilinearExtension<R>
 where
     R: Copy + ark_std::ops::AddAssign,
 {
-    fn add_assign(&mut self, (r, other): (R, &DenseMultilinearExtension<R>)) {
+    fn add_assign(&mut self, (r, other): (R, &Self)) {
         if self.is_zero() {
             *self = other.clone();
 
@@ -323,65 +308,8 @@ where
     }
 }
 
-impl<R: Ring> Neg for DenseMultilinearExtension<R> {
-    type Output = DenseMultilinearExtension<R>;
-
-    fn neg(mut self) -> Self {
-        cfg_iter_mut!(self.evaluations).for_each(|a| *a = a.neg());
-
-        self
-    }
-}
-
-impl<R: Ring> Sub for DenseMultilinearExtension<R> {
-    type Output = DenseMultilinearExtension<R>;
-
-    fn sub(self, other: DenseMultilinearExtension<R>) -> Self {
-        &self - &other
-    }
-}
-
-impl<'a, R: Ring> Sub<&'a DenseMultilinearExtension<R>> for &DenseMultilinearExtension<R> {
-    type Output = DenseMultilinearExtension<R>;
-
-    fn sub(self, rhs: &'a DenseMultilinearExtension<R>) -> Self::Output {
-        if rhs.is_zero() {
-            return self.clone();
-        }
-
-        if self.is_zero() {
-            return rhs.clone().neg();
-        }
-
-        assert_eq!(
-            self.num_vars, rhs.num_vars,
-            "trying to subtract two dense MLEs with different numbers of variables"
-        );
-
-        let self_evals = if self.evaluations.len() < rhs.evaluations.len() {
-            let mut evals = self.evaluations.clone();
-            evals.resize(rhs.evaluations.len(), R::zero());
-            Cow::Owned(evals)
-        } else {
-            Cow::Borrowed(&self.evaluations)
-        };
-        let result = cfg_iter!(self_evals)
-            .zip(cfg_iter!(rhs.evaluations))
-            .map(|(a, b)| *a - b)
-            .collect();
-
-        Self::Output::from_evaluations_vec(self.num_vars, result)
-    }
-}
-
-impl<R: Ring> SubAssign for DenseMultilinearExtension<R> {
-    fn sub_assign(&mut self, other: DenseMultilinearExtension<R>) {
-        self.sub_assign(&other);
-    }
-}
-
 impl<'a, R: Ring> SubAssign<&'a DenseMultilinearExtension<R>> for DenseMultilinearExtension<R> {
-    fn sub_assign(&mut self, rhs: &'a DenseMultilinearExtension<R>) {
+    fn sub_assign(&mut self, rhs: &'a Self) {
         if self.is_zero() {
             *self = rhs.clone().neg();
             return;
@@ -405,12 +333,26 @@ impl<'a, R: Ring> SubAssign<&'a DenseMultilinearExtension<R>> for DenseMultiline
     }
 }
 
-impl<R: Ring> Mul<R> for DenseMultilinearExtension<R> {
-    type Output = DenseMultilinearExtension<R>;
+impl<R: Ring> SubAssign for DenseMultilinearExtension<R> {
+    fn sub_assign(&mut self, other: Self) {
+        self.sub_assign(&other);
+    }
+}
 
-    fn mul(mut self, rhs: R) -> DenseMultilinearExtension<R> {
-        self.evaluations.iter_mut().for_each(|x| *x *= rhs);
+impl<R: Ring> Sub for DenseMultilinearExtension<R> {
+    type Output = Self;
 
+    fn sub(mut self, other: Self) -> Self {
+        self -= &other;
+        self
+    }
+}
+
+impl<'a, R: Ring> Sub<&'a DenseMultilinearExtension<R>> for DenseMultilinearExtension<R> {
+    type Output = Self;
+
+    fn sub(mut self, rhs: &'a Self) -> Self {
+        self -= rhs;
         self
     }
 }
@@ -421,20 +363,19 @@ impl<R: Ring> MulAssign<R> for DenseMultilinearExtension<R> {
     }
 }
 
-impl<R: Ring> Sub<R> for DenseMultilinearExtension<R> {
-    type Output = DenseMultilinearExtension<R>;
+impl<R: Ring> Mul<R> for DenseMultilinearExtension<R> {
+    type Output = Self;
 
-    fn sub(mut self, rhs: R) -> DenseMultilinearExtension<R> {
-        self.evaluations.iter_mut().for_each(|x| *x -= rhs);
-
+    fn mul(mut self, rhs: R) -> Self {
+        self *= rhs;
         self
     }
 }
 
 impl<R: Ring> Add<R> for DenseMultilinearExtension<R> {
-    type Output = DenseMultilinearExtension<R>;
+    type Output = Self;
 
-    fn add(mut self, rhs: R) -> DenseMultilinearExtension<R> {
+    fn add(mut self, rhs: R) -> Self {
         self.evaluations.iter_mut().for_each(|x| *x += rhs);
 
         self
