@@ -583,6 +583,7 @@ dependencies = [
  "serde",
  "serde_with",
  "stark-rings-linalg",
+ "thiserror",
  "zeroize",
 ]
 
