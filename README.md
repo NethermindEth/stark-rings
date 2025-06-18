@@ -14,6 +14,12 @@ Import the library:
 stark-rings = { git = "https://github.com/NethermindEth/stark-rings.git", package = "stark-rings"}
 ```
 
+## Documentation
+See the documentation with:
+```bash
+RUSTDOCFLAGS="--html-in-header $(pwd)/docs-header.html" cargo doc --open
+```
+
 ## License
 The crates in this repository are licensed under either of the following licenses, at your discretion.
 
