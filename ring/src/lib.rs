@@ -3,6 +3,8 @@
 #![feature(vec_into_raw_parts)]
 // Exports
 pub use balanced_decomposition::representatives::{SignedRepresentative, UnsignedRepresentative};
+pub use error::*;
+pub use monomial::*;
 pub use poly_ring::*;
 pub use ring::*;
 pub use traits::*;
@@ -11,6 +13,8 @@ pub mod balanced_decomposition;
 pub mod cyclotomic_ring;
 pub mod traits;
 
+mod error;
+mod monomial;
 mod poly_ring;
 mod ring;
 

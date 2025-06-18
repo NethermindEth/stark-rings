@@ -10,7 +10,7 @@ use crate::{
     },
     impl_crt_icrt_for_a_ring,
     traits::FromRandomBytes,
-    Cyclotomic, OverField, PolyRing, Ring,
+    Cyclotomic, OverField, PolyRing,
 };
 
 use self::fq9::{Fp9, Fp9Config};
@@ -68,11 +68,6 @@ impl Fp9Config for BabyBear9ExtConfig {
 }
 
 pub type Fq9 = Fp9<BabyBear9ExtConfig>;
-
-impl Ring for Fq9 {
-    const ZERO: Self = <Fq9 as Field>::ZERO;
-    const ONE: Self = <Fq9 as Field>::ONE;
-}
 
 impl FromRandomBytes<Fq9> for Fq9 {
     #[inline(always)]
@@ -185,7 +180,7 @@ mod tests {
     use crate::{
         balanced_decomposition::Decompose,
         cyclotomic_ring::crt::{CRT, ICRT},
-        PolyRing,
+        PolyRing, Ring,
     };
 
     #[test]

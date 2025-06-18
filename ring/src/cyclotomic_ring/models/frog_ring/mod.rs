@@ -8,7 +8,7 @@ use crate::{
     impl_crt_icrt_for_a_ring,
     poly_ring::PolyRing,
     traits::FromRandomBytes,
-    Cyclotomic, OverField, Ring,
+    Cyclotomic, OverField,
 };
 
 mod ntt;
@@ -59,11 +59,6 @@ impl Fp4Config for Frog4Config {
 }
 
 pub type Fq4 = Fp4<Frog4Config>;
-
-impl Ring for Fq4 {
-    const ZERO: Self = <Fq4 as Field>::ZERO;
-    const ONE: Self = <Fq4 as Field>::ONE;
-}
 
 impl FromRandomBytes<Fq4> for Fq4 {
     #[inline(always)]
@@ -155,7 +150,7 @@ mod test {
     use crate::{
         balanced_decomposition::Decompose,
         cyclotomic_ring::crt::{CRT, ICRT},
-        PolyRing,
+        PolyRing, Ring,
     };
 
     #[test]

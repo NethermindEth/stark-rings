@@ -26,6 +26,7 @@ num-integer = { workspace = true }
 rand = { workspace = true }
 num-traits = { version = "0.2", default-features = false }
 rayon = { version = "1.10", optional = true }
+thiserror = { workspace = true }
 
 [features]
 default = [ "std" ]
