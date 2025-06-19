@@ -1,6 +1,5 @@
 use ark_std::vec::*;
 use num_bigint::BigUint;
-use stark_rings_linalg::{Matrix, Vector};
 
 use crate::{PolyRing, Ring};
 
@@ -68,19 +67,6 @@ pub trait Cyclotomic: PolyRing {
     fn into_rot_iter(self) -> Rotation<Self> {
         Rotation { curr: self }
     }
-}
-
-pub fn rot_matrix<C: Cyclotomic>(mut f: C) -> Matrix<C::BaseRing> {
-    let degree = C::degree();
-    let mut columns = Vec::with_capacity(degree);
-
-    (0..degree).for_each(|_| {
-        f.rot();
-
-        columns.push(Vector::from_slice(f.coeffs()))
-    });
-
-    Matrix::from_columns(&columns)
 }
 
 pub struct Rotation<R: Cyclotomic> {

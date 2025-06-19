@@ -2,7 +2,10 @@
 #![allow(non_snake_case)]
 #![feature(vec_into_raw_parts)]
 // Exports
-pub use balanced_decomposition::representatives::{SignedRepresentative, UnsignedRepresentative};
+pub use balanced_decomposition::{
+    representatives::{SignedRepresentative, UnsignedRepresentative},
+    Decompose,
+};
 pub use poly_ring::*;
 pub use ring::*;
 pub use traits::*;
