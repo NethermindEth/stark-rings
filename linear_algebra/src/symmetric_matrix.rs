@@ -11,8 +11,6 @@ use ark_std::{
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-use crate::{Matrix, Scalar};
-
 #[derive(Clone, Debug, PartialEq, Hash)]
 pub struct SymmetricMatrix<F: Clone>(Vec<Vec<F>>);
 
@@ -23,39 +21,9 @@ impl<F: Clone> From<Vec<Vec<F>>> for SymmetricMatrix<F> {
     }
 }
 
-impl<F: Clone + Scalar> From<Matrix<F>> for SymmetricMatrix<F> {
-    fn from(value: Matrix<F>) -> Self {
-        assert_eq!(value.transpose(), value);
-        Self(
-            value
-                .row_iter()
-                .enumerate()
-                .map(|(i, v_i)| v_i.iter().take(i + 1).cloned().collect())
-                .collect(),
-        )
-    }
-}
-
-impl<F: Clone + Scalar> From<SymmetricMatrix<F>> for Matrix<F> {
-    fn from(val: SymmetricMatrix<F>) -> Self {
-        Matrix::<F>::from_fn(val.size(), val.size(), |i, j| val.at(i, j).clone())
-    }
-}
-
 impl<F: Zero + Clone> SymmetricMatrix<F> {
     pub fn zero(n: usize) -> SymmetricMatrix<F> {
         SymmetricMatrix::<F>((0..n).map(|i| vec![F::zero(); i + 1]).collect())
-    }
-}
-
-impl<F: Scalar> PartialEq<Matrix<F>> for SymmetricMatrix<F> {
-    fn eq(&self, other: &Matrix<F>) -> bool {
-        self.0.iter().enumerate().all(|(i, self_i)| {
-            self_i
-                .iter()
-                .enumerate()
-                .all(|(j, self_ij)| other[(i, j)] == *self_ij)
-        })
     }
 }
 
@@ -117,27 +85,6 @@ impl<F: Clone> SymmetricMatrix<F> {
                 .map(|i| (0..i + 1).into_par_iter().map(|j| func(i, j)).collect())
                 .collect::<Vec<Vec<F>>>(),
         )
-    }
-}
-impl<F: Clone + Scalar> SymmetricMatrix<F> {
-    pub fn from_blocks(
-        top_left: SymmetricMatrix<F>,
-        bottom_left: Matrix<F>,
-        bottom_right: SymmetricMatrix<F>,
-    ) -> Self {
-        let n = top_left.size();
-        assert_eq!(bottom_left.nrows(), n);
-        assert_eq!(bottom_left.ncols(), n);
-        assert_eq!(bottom_right.size(), n);
-
-        let mut result = top_left.0;
-        result.extend(
-            bottom_left
-                .row_iter()
-                .zip(bottom_right.0)
-                .map(|(bl_i, br_i)| [bl_i.0.into_owned().as_slice(), br_i.as_slice()].concat()),
-        );
-        Self(result)
     }
 }
 

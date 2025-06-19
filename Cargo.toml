@@ -26,7 +26,6 @@ bitter = "0.6"
 delegate = "0.13"
 delegate-attr = "0.3"
 derive_more = "0.99"
-nalgebra = { version = "0.32", default-features = false, features = ["alloc"] }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_with = { version = "3.7", default-features = false }
 zeroize = "1.7"
