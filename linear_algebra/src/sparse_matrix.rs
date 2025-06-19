@@ -1,142 +1,172 @@
-use ark_ff::{vec::*, UniformRand, Zero};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::rand::Rng;
+use crate::Matrix;
+use ark_serialize::{
+    CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
+};
+use ark_std::{
+    io::{Read, Write},
+    rand::Rng,
+    vec::*,
+    UniformRand, Zero,
+};
 
-#[derive(Clone, Debug, Eq, PartialEq, CanonicalSerialize, CanonicalDeserialize)]
-pub struct SparseMatrix<
-    R1: Clone
-        + Send
-        + Sync
-        + ark_serialize::Valid
-        + ark_serialize::CanonicalSerialize
-        + ark_serialize::CanonicalDeserialize,
-> {
-    pub n_rows: usize,
-    pub n_cols: usize,
-    pub coeffs: Vec<Vec<(R1, usize)>>,
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SparseMatrix<R> {
+    pub nrows: usize,
+    pub ncols: usize,
+    pub coeffs: Vec<Vec<(R, usize)>>,
 }
 
-impl<
-        R: Copy
-            + Send
-            + Sync
-            + Zero
-            + UniformRand
-            + ark_serialize::Valid
-            + ark_serialize::CanonicalSerialize
-            + ark_serialize::CanonicalDeserialize,
-    > SparseMatrix<R>
-{
+impl<R> SparseMatrix<R> {
     pub fn empty() -> Self {
         Self {
-            n_rows: 0,
-            n_cols: 0,
+            nrows: 0,
+            ncols: 0,
             coeffs: vec![],
         }
     }
 
-    pub fn rand<RND: Rng>(rng: &mut RND, n_rows: usize, n_cols: usize) -> Self {
-        const ZERO_VAL_PROBABILITY: f64 = 0.8f64;
-
-        let dense = (0..n_rows)
-            .map(|_| {
-                (0..n_cols)
-                    .map(|_| {
-                        if !rng.gen_bool(ZERO_VAL_PROBABILITY) {
-                            return R::rand(rng);
-                        }
-                        R::zero()
-                    })
-                    .collect::<Vec<R>>()
-            })
-            .collect::<Vec<Vec<R>>>();
-        dense_matrix_to_sparse(dense)
-    }
-
-    pub fn to_dense(&self) -> Vec<Vec<R>> {
-        let mut r: Vec<Vec<R>> = vec![vec![R::zero(); self.n_cols]; self.n_rows];
-        for (row_i, row) in self.coeffs.iter().enumerate() {
-            for &(value, col_i) in row.iter() {
-                r[row_i][col_i] = value;
-            }
-        }
-        r
-    }
-
     pub fn nrows(&self) -> usize {
-        self.n_rows
+        self.nrows
     }
 
     pub fn ncols(&self) -> usize {
-        self.n_cols
+        self.ncols
     }
 
     pub fn pad_rows(&mut self, new_size: usize) {
         if new_size > self.nrows() {
-            self.n_rows = new_size;
+            self.nrows = new_size;
         }
     }
 
     pub fn pad_cols(&mut self, new_size: usize) {
         if new_size > self.ncols() {
-            self.n_cols = new_size;
+            self.ncols = new_size;
         }
     }
 }
 
-pub fn dense_matrix_to_sparse<
-    R: Copy
-        + Send
-        + Sync
-        + Zero
-        + UniformRand
-        + ark_serialize::Valid
-        + ark_serialize::CanonicalSerialize
-        + ark_serialize::CanonicalDeserialize,
->(
-    m: Vec<Vec<R>>,
-) -> SparseMatrix<R> {
-    let mut r = SparseMatrix::<R> {
-        n_rows: m.len(),
-        n_cols: m[0].len(),
-        coeffs: Vec::new(),
-    };
-    for m_row in m.iter() {
-        let mut row: Vec<(R, usize)> = Vec::new();
-        for (col_i, value) in m_row.iter().enumerate() {
-            if !value.is_zero() {
-                row.push((*value, col_i));
+impl<R: Clone + UniformRand + Zero> SparseMatrix<R> {
+    /// Create a random sparse matrix with an approximate `sparsity` ratio of zeroes
+    pub fn rand<RND: Rng>(rng: &mut RND, nrows: usize, ncols: usize, sparsity: f64) -> Self {
+        let mut coeffs = Vec::with_capacity(nrows);
+
+        for _ in 0..nrows {
+            let mut row = Vec::new();
+            for col in 0..ncols {
+                if !rng.gen_bool(sparsity) {
+                    row.push((R::rand(rng), col));
+                }
             }
+            coeffs.push(row);
         }
-        r.coeffs.push(row);
+
+        Self {
+            nrows,
+            ncols,
+            coeffs,
+        }
     }
-    r
 }
 
-pub fn dense_matrix_u64_to_sparse<R>(m: Vec<Vec<u64>>) -> SparseMatrix<R>
-where
-    R: Copy
-        + Send
-        + Sync
-        + Zero
-        + From<u64>
-        + ark_serialize::Valid
-        + ark_serialize::CanonicalSerialize
-        + ark_serialize::CanonicalDeserialize,
-{
-    let mut r = SparseMatrix::<R> {
-        n_rows: m.len(),
-        n_cols: m[0].len(),
-        coeffs: Vec::new(),
-    };
-    for m_row in m.iter() {
-        let mut row: Vec<(R, usize)> = Vec::new();
-        for (col_i, &value) in m_row.iter().enumerate() {
-            if value != 0 {
-                row.push((R::from(value), col_i));
+impl<R: Clone + Zero> SparseMatrix<R> {
+    pub fn to_dense(&self) -> Matrix<R> {
+        let mut s: Vec<Vec<R>> = vec![vec![R::zero(); self.ncols]; self.nrows];
+        for (row_i, row) in self.coeffs.iter().enumerate() {
+            for (value, col_i) in row.iter() {
+                s[row_i][*col_i] = value.clone();
             }
         }
-        r.coeffs.push(row);
+        s.into()
     }
-    r
+
+    pub fn from_dense<T: Clone + Into<R> + Zero>(m: &Matrix<T>) -> Self {
+        let mut s = SparseMatrix::<R> {
+            nrows: m.vals.len(),
+            ncols: m.vals.first().unwrap_or(&vec![]).len(),
+            coeffs: Vec::new(),
+        };
+        for m_row in m.vals.iter() {
+            let mut row: Vec<(R, usize)> = Vec::new();
+            for (col_i, value) in m_row.iter().enumerate() {
+                if !value.is_zero() {
+                    row.push(((*value).clone().into(), col_i));
+                }
+            }
+            s.coeffs.push(row);
+        }
+        s
+    }
+}
+
+impl<R: CanonicalSerialize> CanonicalSerialize for SparseMatrix<R> {
+    fn serialize_with_mode<W: Write>(
+        &self,
+        mut writer: W,
+        compress: Compress,
+    ) -> Result<(), SerializationError> {
+        let nrows = self.nrows() as u64;
+        let ncols = self.ncols() as u64;
+        nrows.serialize_with_mode(&mut writer, compress)?;
+        ncols.serialize_with_mode(&mut writer, compress)?;
+        self.coeffs.serialize_with_mode(&mut writer, compress)?;
+        Ok(())
+    }
+
+    fn serialized_size(&self, compress: Compress) -> usize {
+        8 + 8 + self.coeffs.serialized_size(compress)
+    }
+}
+
+impl<R: CanonicalDeserialize> Valid for SparseMatrix<R> {
+    fn check(&self) -> Result<(), SerializationError> {
+        Vec::<Vec<(R, usize)>>::check(&self.coeffs)
+    }
+}
+
+impl<R: CanonicalDeserialize> CanonicalDeserialize for SparseMatrix<R> {
+    fn deserialize_with_mode<Re: Read>(
+        mut reader: Re,
+        compress: Compress,
+        validate: Validate,
+    ) -> Result<Self, SerializationError> {
+        let nrows = u64::deserialize_with_mode(&mut reader, compress, validate)? as usize;
+        let ncols = u64::deserialize_with_mode(&mut reader, compress, validate)? as usize;
+        let coeffs =
+            Vec::<Vec<(R, usize)>>::deserialize_with_mode(&mut reader, compress, validate)?;
+        Ok(Self {
+            nrows,
+            ncols,
+            coeffs,
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_sparse() -> SparseMatrix<u32> {
+        let coeffs = vec![vec![(2, 1usize)], vec![], vec![(1, 0), (4, 1), (3, 2)]];
+
+        SparseMatrix {
+            nrows: 3,
+            ncols: 3,
+            coeffs,
+        }
+    }
+
+    fn sample_dense() -> Matrix<u32> {
+        vec![vec![0, 2, 0], vec![0, 0, 0], vec![1, 4, 3]].into()
+    }
+
+    #[test]
+    fn test_matrix_dense_to_sparse() {
+        assert_eq!(SparseMatrix::from_dense(&sample_dense()), sample_sparse());
+    }
+
+    #[test]
+    fn test_matrix_sparse_to_dense() {
+        assert_eq!(sample_sparse().to_dense(), sample_dense());
+    }
 }

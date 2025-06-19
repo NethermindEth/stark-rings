@@ -92,8 +92,8 @@ impl<R: Ring> SparseMultilinearExtension<R> {
 
     /// Returns the sparse MLE from the given matrix, without modifying the original matrix.
     pub fn from_matrix(m: &SparseMatrix<R>) -> Self {
-        let n_rows = m.n_rows.next_power_of_two();
-        let n_cols = m.n_cols.next_power_of_two();
+        let n_rows = m.nrows.next_power_of_two();
+        let n_cols = m.ncols.next_power_of_two();
         let n_vars: usize = (log2(n_rows * n_cols)) as usize; // n_vars = s + s'
 
         // build the sparse vec representing the sparse matrix
@@ -426,11 +426,11 @@ mod tests {
     }
 
     fn matrix_cast<R: Ring>(m: &[Vec<usize>]) -> SparseMatrix<R> {
-        let n_rows = m.len();
-        let n_cols = m[0].len();
-        let mut coeffs = Vec::with_capacity(n_rows);
+        let nrows = m.len();
+        let ncols = m[0].len();
+        let mut coeffs = Vec::with_capacity(nrows);
         for row in m.iter() {
-            let mut row_coeffs = Vec::with_capacity(n_cols);
+            let mut row_coeffs = Vec::with_capacity(ncols);
             for (col_i, &val) in row.iter().enumerate() {
                 if val != 0 {
                     row_coeffs.push((R::from(val as u64), col_i));
@@ -439,8 +439,8 @@ mod tests {
             coeffs.push(row_coeffs);
         }
         SparseMatrix {
-            n_rows,
-            n_cols,
+            nrows,
+            ncols,
             coeffs,
         }
     }
