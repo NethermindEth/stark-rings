@@ -14,7 +14,7 @@ use crate::{PolyRing, Ring};
 use convertible_ring::ConvertibleRing;
 use stark_rings_linalg::{
     ops::{rounded_div, Transpose},
-    SymmetricMatrix,
+    Matrix, SymmetricMatrix,
 };
 pub mod convertible_ring;
 mod fq_convertible;
@@ -248,6 +248,36 @@ where
         .into()
 }
 
+/// Returns the balanced gadget decomposition of a [`Matrix`] of dimensions `n × m` as a matrix of dimensions `n × (k * m)`.
+///
+/// # Arguments
+/// * `mat`: input matrix of dimensions `n × m`
+/// * `b`: basis for the decomposition, must be even
+/// * `padding_size`: indicates whether the decomposition length is the specified `k` if `padding_size` is `Some(k)`, or if `k` is the largest decomposition length required for `mat` if `padding_size` is `None`
+///
+/// # Output
+/// Returns `d` the decomposition in basis `b` as a Matrix of dimensions `n × (k * m)`, i.e.,
+pub fn decompose_matrix<F: Decompose + Sized + Sync + Send>(
+    mat: &Matrix<F>,
+    decomposition_basis: u128,
+    decomposition_length: usize,
+) -> Matrix<F> {
+    let row_iter = {
+        #[cfg(not(feature = "parallel"))]
+        {
+            mat.vals.iter()
+        }
+        #[cfg(feature = "parallel")]
+        {
+            mat.vals.par_iter()
+        }
+    };
+    row_iter
+        .map(|s_i| gadget_decompose(s_i, decomposition_basis, decomposition_length))
+        .collect::<Vec<_>>()
+        .into()
+}
+
 #[cfg(test)]
 mod tests {
     use crate::cyclotomic_ring::models::goldilocks::{Fq, RqPoly};
@@ -373,5 +403,48 @@ mod tests {
         ];
 
         assert_eq!(gadget_recompose(&decomposed, 2u128, 4), expected);
+    }
+
+    #[test]
+    fn test_gadget_matrix_decompose() {
+        use crate::cyclotomic_ring::models::goldilocks::{Fq, RqPoly};
+
+        let m: Matrix<RqPoly> = vec![
+            vec![
+                RqPoly::from((0..24).map(|_| Fq::from(15)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(-15)).collect::<Vec<Fq>>()),
+            ],
+            vec![
+                RqPoly::from((0..24).map(|_| Fq::from(15)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(-15)).collect::<Vec<Fq>>()),
+            ],
+        ]
+        .into();
+
+        let decomposed = decompose_matrix(&m, 2, 4);
+        let expected = vec![
+            vec![
+                RqPoly::from((0..24).map(|_| Fq::from(1)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(1)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(1)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(1)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(-1)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(-1)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(-1)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(-1)).collect::<Vec<Fq>>()),
+            ],
+            vec![
+                RqPoly::from((0..24).map(|_| Fq::from(1)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(1)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(1)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(1)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(-1)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(-1)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(-1)).collect::<Vec<Fq>>()),
+                RqPoly::from((0..24).map(|_| Fq::from(-1)).collect::<Vec<Fq>>()),
+            ],
+        ];
+
+        assert_eq!(decomposed, expected.into());
     }
 }
