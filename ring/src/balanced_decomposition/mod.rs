@@ -21,11 +21,11 @@ mod fq_convertible;
 pub(crate) mod representatives;
 
 pub trait Decompose: Sized + Zero + Copy {
-    fn decompose_in_place(&self, b: u128, out: &mut [Self]);
+    fn decompose_to(&self, b: u128, out: &mut [Self]);
     fn decompose(&self, b: u128, padding_size: usize) -> Vec<Self> {
         let mut res = vec![Self::zero(); padding_size];
 
-        self.decompose_in_place(b, &mut res);
+        self.decompose_to(b, &mut res);
 
         res
     }
@@ -101,7 +101,7 @@ pub fn gadget_decompose<R: Decompose + Sync + Send>(
 
     cfg_chunks_mut!(&mut out, padding_size)
         .zip(cfg_iter!(v_s))
-        .for_each(|(chunk_mut, v)| v.decompose_in_place(b, chunk_mut));
+        .for_each(|(chunk_mut, v)| v.decompose_to(b, chunk_mut));
 
     out
 }

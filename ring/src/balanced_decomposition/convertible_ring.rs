@@ -41,7 +41,7 @@ pub trait ConvertibleRing:
 }
 
 impl<R: ConvertibleRing> Decompose for R {
-    fn decompose_in_place(&self, b: u128, out: &mut [Self]) {
+    fn decompose_to(&self, b: u128, out: &mut [Self]) {
         decompose_balanced_in_place(self, b, out);
     }
 }

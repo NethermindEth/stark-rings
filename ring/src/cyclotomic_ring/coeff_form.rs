@@ -589,11 +589,11 @@ impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Decompose
 where
     Fp<C::BaseFieldConfig, N>: Decompose,
 {
-    fn decompose_in_place(&self, b: u128, out: &mut [Self]) {
+    fn decompose_to(&self, b: u128, out: &mut [Self]) {
         let mut buffer = vec![Fp::<C::BaseFieldConfig, N>::zero(); out.len()];
 
         for (i, coeff) in self.0.iter().enumerate() {
-            coeff.decompose_in_place(b, &mut buffer);
+            coeff.decompose_to(b, &mut buffer);
 
             out.iter_mut()
                 .zip(buffer.iter())
