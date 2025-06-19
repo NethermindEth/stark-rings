@@ -6,9 +6,11 @@
 #[macro_use]
 extern crate ark_std;
 
+pub mod matrix;
 pub mod ops;
 pub mod sparse_matrix;
-mod symmetric_matrix;
+pub mod symmetric_matrix;
 
-pub type SymmetricMatrix<T> = symmetric_matrix::SymmetricMatrix<T>;
-pub type SparseMatrix<T> = sparse_matrix::SparseMatrix<T>;
+pub use matrix::Matrix;
+pub use sparse_matrix::SparseMatrix;
+pub use symmetric_matrix::SymmetricMatrix;
