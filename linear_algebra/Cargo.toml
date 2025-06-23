@@ -13,9 +13,10 @@ ark-serialize = { workspace = true }
 ark-std = { workspace = true }
 delegate = { workspace = true }
 derive_more = { workspace = true }
+num-integer = { workspace = true }
 serde = { workspace = true }
 rand = { workspace = true }
-num-integer = { workspace = true }
+thiserror = { workspace = true }
 
 rayon = { version = "1.10", optional = true }
 
