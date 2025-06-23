@@ -1,12 +1,17 @@
+use crate::AlgebraError;
 use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
 use ark_std::{
     io::{Read, Write},
+    iter::Sum,
+    ops::{Mul, MulAssign},
     rand::Rng,
     vec::*,
     UniformRand, Zero,
 };
+#[cfg(feature = "parallel")]
+use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Matrix<R> {
@@ -103,5 +108,69 @@ impl<R: CanonicalDeserialize> CanonicalDeserialize for Matrix<R> {
             ncols: vals.first().unwrap_or(&vec![]).len(),
             vals,
         })
+    }
+}
+
+impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Send + Sync + Sum> Matrix<R> {
+    pub fn checked_mul_vec(&self, v: &[R]) -> Option<Vec<R>> {
+        if self.ncols != v.len() {
+            return None;
+        }
+
+        Some(
+            cfg_iter!(self.vals)
+                .map(|row| row.iter().zip(v).map(|(r_m, r_v)| r_m.clone() * r_v).sum())
+                .collect(),
+        )
+    }
+
+    pub fn try_mul_vec(&self, v: &[R]) -> Result<Vec<R>, AlgebraError> {
+        self.checked_mul_vec(v)
+            .ok_or(AlgebraError::DifferentLengths(self.ncols, v.len()))
+    }
+}
+
+impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Send + Sync + Sum> Mul<&[R]> for &Matrix<R> {
+    type Output = Vec<R>;
+
+    fn mul(self, v: &[R]) -> Vec<R> {
+        self.try_mul_vec(v).unwrap()
+    }
+}
+
+impl<R: for<'a> MulAssign<&'a R> + Send + Sync> MulAssign<&R> for Matrix<R> {
+    fn mul_assign(&mut self, r: &R) {
+        cfg_iter_mut!(self.vals).for_each(|row| row.iter_mut().for_each(|r_m| *r_m *= r))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_matrix() -> Matrix<u32> {
+        vec![vec![0, 2, 0], vec![0, 0, 0], vec![1, 4, 3]].into()
+    }
+
+    #[test]
+    fn test_matrix_mul_vec() {
+        let m = sample_matrix();
+        let v = vec![1, 2, 3];
+
+        let result = m.try_mul_vec(&v).unwrap();
+        assert_eq!(result, vec![4, 0, 18]);
+
+        let badv = vec![1, 2];
+        let result = m.try_mul_vec(&badv);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_matrix_mul_element() {
+        let mut m = sample_matrix();
+        let r = 3u32;
+
+        m *= &r;
+        assert_eq!(m, vec![vec![0, 6, 0], vec![0, 0, 0], vec![3, 12, 9]].into())
     }
 }

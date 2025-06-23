@@ -32,6 +32,7 @@ zeroize = "1.7"
 num-bigint = { version = "0.4", default-features = false }
 num-integer = { version = "0.1", default-features = false }
 rand = { version = "0.8", default-features = false }
+thiserror = { version = "2", default-features = false }
 displaydoc = { version = "0.2", default-features = false }
 
 [workspace.metadata.docs.rs]

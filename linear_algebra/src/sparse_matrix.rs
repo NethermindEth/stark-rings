@@ -1,13 +1,17 @@
-use crate::Matrix;
+use crate::{AlgebraError, Matrix};
 use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
 use ark_std::{
     io::{Read, Write},
+    iter::Sum,
+    ops::{Mul, MulAssign},
     rand::Rng,
     vec::*,
     UniformRand, Zero,
 };
+#[cfg(feature = "parallel")]
+use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SparseMatrix<R> {
@@ -142,6 +146,39 @@ impl<R: CanonicalDeserialize> CanonicalDeserialize for SparseMatrix<R> {
     }
 }
 
+impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Sum + Send + Sync> SparseMatrix<R> {
+    pub fn checked_mul_vec(&self, v: &[R]) -> Option<Vec<R>> {
+        if self.ncols != v.len() {
+            return None;
+        }
+
+        Some(
+            cfg_iter!(self.coeffs)
+                .map(|row| row.iter().map(|(r, i)| r.clone() * &v[*i]).sum())
+                .collect(),
+        )
+    }
+
+    pub fn try_mul_vec(&self, v: &[R]) -> Result<Vec<R>, AlgebraError> {
+        self.checked_mul_vec(v)
+            .ok_or(AlgebraError::DifferentLengths(self.ncols, v.len()))
+    }
+}
+
+impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Send + Sum + Sync> Mul<&[R]> for &SparseMatrix<R> {
+    type Output = Vec<R>;
+
+    fn mul(self, v: &[R]) -> Vec<R> {
+        self.try_mul_vec(v).unwrap()
+    }
+}
+
+impl<R: for<'a> MulAssign<&'a R> + Send + Sync> MulAssign<&R> for SparseMatrix<R> {
+    fn mul_assign(&mut self, r: &R) {
+        cfg_iter_mut!(self.coeffs).for_each(|row| row.iter_mut().for_each(|(m_r, _)| *m_r *= r))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -168,5 +205,30 @@ mod tests {
     #[test]
     fn test_matrix_sparse_to_dense() {
         assert_eq!(sample_sparse().to_dense(), sample_dense());
+    }
+
+    #[test]
+    fn test_sparse_matrix_mul_vec() {
+        let m = sample_sparse();
+        let v = vec![1, 2, 3];
+
+        let result = m.try_mul_vec(&v).unwrap();
+        assert_eq!(result, vec![4, 0, 18]);
+
+        let badv = vec![1, 2];
+        let result = m.try_mul_vec(&badv);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_sparse_matrix_mul_element() {
+        let mut m = sample_sparse();
+        let r = 3u32;
+
+        m *= &r;
+        assert_eq!(
+            m.to_dense(),
+            vec![vec![0, 6, 0], vec![0, 0, 0], vec![3, 12, 9]].into()
+        )
     }
 }

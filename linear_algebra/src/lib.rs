@@ -6,11 +6,13 @@
 #[macro_use]
 extern crate ark_std;
 
+mod error;
 pub mod matrix;
 pub mod ops;
 pub mod sparse_matrix;
 pub mod symmetric_matrix;
 
+pub use error::AlgebraError;
 pub use matrix::Matrix;
 pub use sparse_matrix::SparseMatrix;
 pub use symmetric_matrix::SymmetricMatrix;
