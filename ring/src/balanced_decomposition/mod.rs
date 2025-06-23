@@ -12,7 +12,7 @@ use rayon::prelude::*;
 
 use crate::Ring;
 use convertible_ring::ConvertibleRing;
-use stark_rings_linalg::{ops::rounded_div, Matrix, SymmetricMatrix};
+use stark_rings_linalg::{ops::rounded_div, Matrix, SparseMatrix, SymmetricMatrix};
 pub mod convertible_ring;
 mod fq_convertible;
 pub(crate) mod representatives;
@@ -190,6 +190,74 @@ impl<R: Ring> GadgetRecompose for Vec<R> {
     }
 }
 
+impl<R: Decompose> GadgetDecompose for &[(R, usize)] {
+    type Output = Vec<(R, usize)>;
+
+    fn gadget_decompose(&self, b: u128, padding_size: usize) -> Vec<(R, usize)> {
+        let mut out = vec![(R::zero(), 0usize); self.len() * padding_size];
+
+        cfg_chunks_mut!(out, padding_size)
+            .zip(cfg_iter!(self))
+            .for_each(|(chunk, (r, index))| {
+                let decomposed = r.decompose(b, padding_size);
+
+                for (i, &r) in decomposed.iter().enumerate() {
+                    let new_index = index * padding_size + i;
+                    chunk[i] = (r, new_index);
+                }
+            });
+
+        // Maintain full sparsity
+        out.retain(|&(r, _)| r != R::zero());
+
+        out
+    }
+}
+
+impl<R: Ring> GadgetRecompose for &[(R, usize)] {
+    type Output = Vec<(R, usize)>;
+
+    fn gadget_recompose(&self, b: u128, padding_size: usize) -> Vec<(R, usize)> {
+        let mut chunks: Vec<&[(R, usize)]> = Vec::with_capacity(self.len() / padding_size);
+        let mut chunk_start = 0;
+
+        for i in 1..self.len() {
+            let index = self[i].1 / padding_size;
+
+            let prev_index = self[i - 1].1 / padding_size;
+            if index != prev_index {
+                chunks.push(&self[chunk_start..i]);
+                chunk_start = i;
+            }
+        }
+
+        if chunk_start < self.len() {
+            chunks.push(&self[chunk_start..]);
+        }
+
+        let b = R::from(b);
+        cfg_iter!(chunks)
+            .map(|chunk| {
+                let index = chunk[0].1 / padding_size;
+                let mut decomposed = vec![R::zero(); padding_size];
+                chunk
+                    .iter()
+                    .for_each(|(elem, i)| decomposed[i % padding_size] = *elem);
+                let recomposed = recompose(&decomposed, b);
+                (recomposed, index)
+            })
+            .collect()
+    }
+}
+
+impl<R: Ring> GadgetRecompose for Vec<(R, usize)> {
+    type Output = Vec<(R, usize)>;
+
+    fn gadget_recompose(&self, b: u128, padding_size: usize) -> Vec<(R, usize)> {
+        self.as_slice().gadget_recompose(b, padding_size)
+    }
+}
+
 impl<R: Decompose> GadgetDecompose for Matrix<R> {
     type Output = Matrix<R>;
 
@@ -217,6 +285,44 @@ impl<R: Ring> GadgetRecompose for Matrix<R> {
             .map(|row| row.as_slice().gadget_recompose(b, padding_size))
             .collect::<Vec<_>>()
             .into()
+    }
+}
+
+impl<R: Decompose> GadgetDecompose for SparseMatrix<R> {
+    type Output = SparseMatrix<R>;
+
+    /// Returns the balanced gadget decomposition of a [`SparseMatrix`] of dimensions `n × m` as a matrix of dimensions `n × (k × m)`.
+    ///
+    /// # Arguments
+    /// * `mat`: input matrix of dimensions `n × m`
+    /// * `b`: basis for the decomposition, must be even
+    /// * `padding_size`: indicates whether the decomposition length is the specified `k` if `padding_size` is `Some(k)`, or if `k` is the largest decomposition length required for `mat` if `padding_size` is `None`
+    ///
+    /// # Output
+    /// Returns `d` the decomposition in basis `b` as a Matrix of dimensions `n × (k × m)`, i.e.,
+    fn gadget_decompose(&self, b: u128, padding_size: usize) -> SparseMatrix<R> {
+        let coeffs = cfg_iter!(self.coeffs)
+            .map(|row| row.as_slice().gadget_decompose(b, padding_size))
+            .collect::<Vec<_>>();
+        SparseMatrix {
+            ncols: self.ncols * padding_size,
+            nrows: self.nrows,
+            coeffs,
+        }
+    }
+}
+
+impl<R: Ring> GadgetRecompose for SparseMatrix<R> {
+    type Output = SparseMatrix<R>;
+    fn gadget_recompose(&self, b: u128, padding_size: usize) -> SparseMatrix<R> {
+        let coeffs = cfg_iter!(self.coeffs)
+            .map(|row| row.as_slice().gadget_recompose(b, padding_size))
+            .collect::<Vec<_>>();
+        SparseMatrix {
+            ncols: self.ncols / padding_size,
+            nrows: self.nrows,
+            coeffs,
+        }
     }
 }
 
@@ -435,6 +541,76 @@ mod tests {
             ],
         ]
         .into();
+
+        let decomposed = m.gadget_decompose(2, 4);
+        let recomposed = decomposed.gadget_recompose(2, 4);
+
+        assert_eq!(recomposed, m);
+    }
+
+    #[test]
+    fn test_sparse_matrix_gadget_decompose() {
+        use crate::cyclotomic_ring::models::goldilocks::{Fq, RqPoly};
+
+        let coeffs = vec![
+            vec![(
+                RqPoly::from((0..24).map(|_| Fq::from(13)).collect::<Vec<Fq>>()),
+                1,
+            )],
+            vec![],
+        ];
+
+        let m = SparseMatrix {
+            coeffs,
+            nrows: 2,
+            ncols: 2,
+        };
+
+        let decomposed = m.gadget_decompose(2, 4);
+
+        let coeffs = vec![
+            vec![
+                (
+                    RqPoly::from((0..24).map(|_| Fq::from(1)).collect::<Vec<Fq>>()),
+                    4,
+                ),
+                (
+                    RqPoly::from((0..24).map(|_| Fq::from(1)).collect::<Vec<Fq>>()),
+                    6,
+                ),
+                (
+                    RqPoly::from((0..24).map(|_| Fq::from(1)).collect::<Vec<Fq>>()),
+                    7,
+                ),
+            ],
+            vec![],
+        ];
+        let expected = SparseMatrix {
+            coeffs,
+            nrows: 2,
+            ncols: 2 * 4,
+        };
+
+        assert_eq!(decomposed, expected);
+    }
+
+    #[test]
+    fn test_sparse_matrix_gadget_recompose() {
+        use crate::cyclotomic_ring::models::goldilocks::{Fq, RqPoly};
+
+        let coeffs = vec![
+            vec![(
+                RqPoly::from((0..24).map(|_| Fq::from(13)).collect::<Vec<Fq>>()),
+                1,
+            )],
+            vec![],
+        ];
+
+        let m = SparseMatrix {
+            coeffs,
+            nrows: 2,
+            ncols: 2,
+        };
 
         let decomposed = m.gadget_decompose(2, 4);
         let recomposed = decomposed.gadget_recompose(2, 4);
