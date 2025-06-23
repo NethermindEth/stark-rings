@@ -10,6 +10,8 @@ use ark_std::{
     vec::*,
     UniformRand, Zero,
 };
+#[cfg(feature = "parallel")]
+use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SparseMatrix<R> {
@@ -144,7 +146,7 @@ impl<R: CanonicalDeserialize> CanonicalDeserialize for SparseMatrix<R> {
     }
 }
 
-impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Sum> SparseMatrix<R> {
+impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Sum + Send + Sync> SparseMatrix<R> {
     pub fn checked_mul_vec(&self, v: &[R]) -> Option<Vec<R>> {
         if self.ncols != v.len() {
             return None;
@@ -163,7 +165,7 @@ impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Sum> SparseMatrix<R> {
     }
 }
 
-impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Sum> Mul<&[R]> for &SparseMatrix<R> {
+impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Send + Sum + Sync> Mul<&[R]> for &SparseMatrix<R> {
     type Output = Vec<R>;
 
     fn mul(self, v: &[R]) -> Vec<R> {
@@ -171,7 +173,7 @@ impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Sum> Mul<&[R]> for &SparseMatri
     }
 }
 
-impl<R: for<'a> MulAssign<&'a R>> MulAssign<&R> for SparseMatrix<R> {
+impl<R: for<'a> MulAssign<&'a R> + Send + Sync> MulAssign<&R> for SparseMatrix<R> {
     fn mul_assign(&mut self, r: &R) {
         cfg_iter_mut!(self.coeffs).for_each(|row| row.iter_mut().for_each(|(m_r, _)| *m_r *= r))
     }

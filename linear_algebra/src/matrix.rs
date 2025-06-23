@@ -10,6 +10,8 @@ use ark_std::{
     vec::*,
     UniformRand, Zero,
 };
+#[cfg(feature = "parallel")]
+use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Matrix<R> {
@@ -109,7 +111,7 @@ impl<R: CanonicalDeserialize> CanonicalDeserialize for Matrix<R> {
     }
 }
 
-impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Sum> Matrix<R> {
+impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Send + Sync + Sum> Matrix<R> {
     pub fn checked_mul_vec(&self, v: &[R]) -> Option<Vec<R>> {
         if self.ncols != v.len() {
             return None;
@@ -128,7 +130,7 @@ impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Sum> Matrix<R> {
     }
 }
 
-impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Sum> Mul<&[R]> for &Matrix<R> {
+impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Send + Sync + Sum> Mul<&[R]> for &Matrix<R> {
     type Output = Vec<R>;
 
     fn mul(self, v: &[R]) -> Vec<R> {
@@ -136,7 +138,7 @@ impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Sum> Mul<&[R]> for &Matrix<R> {
     }
 }
 
-impl<R: for<'a> MulAssign<&'a R>> MulAssign<&R> for Matrix<R> {
+impl<R: for<'a> MulAssign<&'a R> + Send + Sync> MulAssign<&R> for Matrix<R> {
     fn mul_assign(&mut self, r: &R) {
         cfg_iter_mut!(self.vals).for_each(|row| row.iter_mut().for_each(|r_m| *r_m *= r))
     }
