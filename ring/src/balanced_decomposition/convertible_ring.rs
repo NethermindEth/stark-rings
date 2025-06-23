@@ -40,25 +40,25 @@ pub trait ConvertibleRing:
         + Sized;
 }
 
-impl<R: ConvertibleRing> Decompose for R {
-    fn decompose_in_place(&self, b: u128, out: &mut [Self]) {
+impl<Z: ConvertibleRing> Decompose for Z {
+    fn decompose_to(&self, b: u128, out: &mut [Self]) {
         decompose_balanced_in_place(self, b, out);
     }
 }
 
 // Norms
-impl<F: ConvertibleRing> WithL2Norm for F {
+impl<Z: ConvertibleRing> WithL2Norm for Z {
     fn l2_norm_squared(&self) -> BigUint {
-        let x: <F as ConvertibleRing>::SignedInt = (*self).into();
+        let x: <Z as ConvertibleRing>::SignedInt = (*self).into();
         let x: BigInt = x.into();
 
         x.pow(2).try_into().unwrap()
     }
 }
 
-impl<F: ConvertibleRing> WithLinfNorm for F {
+impl<Z: ConvertibleRing> WithLinfNorm for Z {
     fn linf_norm(&self) -> BigUint {
-        let x: <F as ConvertibleRing>::SignedInt = (*self).into();
+        let x: <Z as ConvertibleRing>::SignedInt = (*self).into();
         let x: BigInt = x.into();
 
         x.abs().to_biguint().unwrap()
