@@ -1,3 +1,4 @@
+use crate::{Matrix, SparseMatrix};
 use ark_std::{
     ops::{Add, BitXor, Div, Sub},
     vec::*,
@@ -9,7 +10,7 @@ pub trait Transpose {
     fn transpose(&self) -> Self;
 }
 
-impl<F: Zero + Clone> Transpose for Vec<Vec<F>> {
+impl<R: Zero + Clone> Transpose for Vec<Vec<R>> {
     fn transpose(&self) -> Self {
         let nrows = self.len();
         let ncols = self.iter().map(|d_i| d_i.len()).max().unwrap_or(0);
@@ -24,11 +25,39 @@ impl<F: Zero + Clone> Transpose for Vec<Vec<F>> {
 
             // Pad the shorter rows with zeroes
             for res_row in res.iter_mut().take(ncols).skip(row.len()) {
-                res_row.push(F::zero());
+                res_row.push(R::zero());
             }
         }
 
         res
+    }
+}
+
+impl<R: Zero + Clone> Transpose for Matrix<R> {
+    fn transpose(&self) -> Self {
+        Self {
+            vals: self.vals.transpose(),
+            nrows: self.nrows,
+            ncols: self.ncols,
+        }
+    }
+}
+
+impl<R: Zero + Clone> Transpose for SparseMatrix<R> {
+    fn transpose(&self) -> Self {
+        let mut res: Vec<Vec<(R, usize)>> = vec![Vec::new(); self.ncols];
+
+        for (row_idx, row) in self.coeffs.iter().enumerate() {
+            for (value, col_idx) in row.iter() {
+                res[*col_idx].push((value.clone(), row_idx));
+            }
+        }
+
+        Self {
+            coeffs: res,
+            nrows: self.ncols,
+            ncols: self.nrows,
+        }
     }
 }
 
@@ -53,6 +82,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::SparseMatrix;
 
     #[test]
     #[rustfmt::skip]
@@ -71,5 +101,34 @@ mod tests {
         ];
 
         assert_eq!(v, r);
+    }
+
+    fn sample_matrix() -> Matrix<u32> {
+        vec![vec![0, 2, 0], vec![0, 0, 0], vec![1, 4, 3]].into()
+    }
+
+    fn sample_matrix_transposed() -> Matrix<u32> {
+        vec![vec![0, 0, 1], vec![2, 0, 4], vec![0, 0, 3]].into()
+    }
+
+    #[test]
+    fn test_transpose_matrix() {
+        let m = sample_matrix();
+
+        let transposed = m.transpose();
+
+        assert_eq!(transposed, sample_matrix_transposed());
+    }
+
+    #[test]
+    fn test_transpose_sparse_matrix() {
+        let m: SparseMatrix<u32> = SparseMatrix::from_dense(&sample_matrix());
+
+        let transposed = m.transpose();
+
+        assert_eq!(
+            transposed,
+            SparseMatrix::from_dense(&sample_matrix_transposed())
+        );
     }
 }
