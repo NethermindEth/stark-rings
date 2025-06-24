@@ -8,7 +8,7 @@ use ark_std::{
     ops::{Mul, MulAssign},
     rand::Rng,
     vec::*,
-    UniformRand, Zero,
+    One, UniformRand, Zero,
 };
 #[cfg(feature = "parallel")]
 use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
@@ -53,6 +53,17 @@ impl<R: Clone + Zero> Matrix<R> {
                 .iter_mut()
                 .for_each(|row| row.resize(new_size, R::zero()));
         }
+    }
+}
+
+impl<R: Clone + One + Zero> Matrix<R> {
+    /// Create a `n * n` identity matrix
+    pub fn identity(n: usize) -> Self {
+        let mut m = Self::zero(n, n);
+        for i in 0..n {
+            m.vals[i][i] = R::one();
+        }
+        m
     }
 }
 
@@ -150,6 +161,17 @@ mod tests {
 
     fn sample_matrix() -> Matrix<u32> {
         vec![vec![0, 2, 0], vec![0, 0, 0], vec![1, 4, 3]].into()
+    }
+
+    #[test]
+    fn test_matrix_identity() {
+        let m = Matrix::identity(2);
+        let expected = Matrix {
+            nrows: 2,
+            ncols: 2,
+            vals: vec![vec![1, 0], vec![0, 1]],
+        };
+        assert_eq!(m, expected);
     }
 
     #[test]
