@@ -8,7 +8,7 @@ use ark_std::{
     ops::{Mul, MulAssign},
     rand::Rng,
     vec::*,
-    UniformRand, Zero,
+    One, UniformRand, Zero,
 };
 #[cfg(feature = "parallel")]
 use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
@@ -47,6 +47,21 @@ impl<R> SparseMatrix<R> {
         if new_size > self.ncols() {
             self.ncols = new_size;
         }
+    }
+}
+
+impl<R: Clone + One> SparseMatrix<R> {
+    /// Create a `n * n` identity matrix
+    pub fn identity(n: usize) -> Self {
+        let mut m = Self {
+            nrows: n,
+            ncols: n,
+            coeffs: vec![vec![]; n],
+        };
+        for (i, row) in m.coeffs.iter_mut().enumerate() {
+            row.push((R::one(), i));
+        }
+        m
     }
 }
 
@@ -195,6 +210,17 @@ mod tests {
 
     fn sample_dense() -> Matrix<u32> {
         vec![vec![0, 2, 0], vec![0, 0, 0], vec![1, 4, 3]].into()
+    }
+
+    #[test]
+    fn test_sparse_matrix_identity() {
+        let m = SparseMatrix::identity(2);
+        let expected = SparseMatrix {
+            nrows: 2,
+            ncols: 2,
+            coeffs: vec![vec![(1, 0)], vec![(1, 1)]],
+        };
+        assert_eq!(m, expected);
     }
 
     #[test]
