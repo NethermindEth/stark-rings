@@ -7,7 +7,7 @@ use crate::{
     },
     impl_crt_icrt_for_a_ring,
     traits::FromRandomBytes,
-    Cyclotomic, OverField, PolyRing, Ring,
+    Cyclotomic, OverField, PolyRing,
 };
 
 mod ntt;
@@ -56,11 +56,6 @@ impl Fp3Config for Goldilocks3Config {
 }
 
 pub type Fq3 = Fp3<Goldilocks3Config>;
-
-impl Ring for Fq3 {
-    const ZERO: Self = <Fq3 as Field>::ZERO;
-    const ONE: Self = <Fq3 as Field>::ONE;
-}
 
 impl FromRandomBytes<Fq3> for Fq3 {
     #[inline(always)]
@@ -173,7 +168,7 @@ mod test {
     use crate::{
         balanced_decomposition::Decompose,
         cyclotomic_ring::crt::{CRT, ICRT},
-        PolyRing,
+        PolyRing, Ring,
     };
 
     #[test]
