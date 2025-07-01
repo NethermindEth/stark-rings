@@ -51,6 +51,40 @@ impl<R> SparseMatrix<R> {
     }
 }
 
+impl<R: Clone> SparseMatrix<R> {
+    pub fn hconcat(ms: &[SparseMatrix<R>]) -> Option<Self> {
+        if ms.is_empty() {
+            return Some(Self::empty());
+        }
+
+        let nrows = ms[0].nrows;
+        if !ms.iter().all(|m| m.nrows == nrows) {
+            return None;
+        }
+
+        let ncols: usize = ms.iter().map(|m| m.ncols).sum();
+        let mut coeffs = vec![vec![]; nrows];
+
+        let mut offset = 0;
+        for m in ms {
+            for (row, crow) in m.coeffs.iter().zip(coeffs.iter_mut()) {
+                let shifted_row: Vec<(R, usize)> = row
+                    .iter()
+                    .map(|(val, i)| (val.clone(), i + offset))
+                    .collect();
+                crow.extend(shifted_row);
+            }
+            offset += m.ncols;
+        }
+
+        Some(SparseMatrix {
+            nrows,
+            ncols,
+            coeffs,
+        })
+    }
+}
+
 impl<R: Clone + One> SparseMatrix<R> {
     /// Create a `n * n` identity matrix
     pub fn identity(n: usize) -> Self {
@@ -348,5 +382,26 @@ mod tests {
         let m3 = SparseMatrix::from_dense(&Matrix::from(vec![vec![1u32, 2], vec![3, 4]]));
         let result = m1.try_mul_mat(&m3);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_sparse_matrix_hconcat() {
+        let m1 = SparseMatrix::<i32>::from_dense(&Matrix::from(vec![vec![1, 2], vec![3, 4]]));
+        let m2 = SparseMatrix::from_dense(&Matrix::from(vec![vec![5], vec![6]]));
+        let m3 = SparseMatrix::from_dense(&Matrix::from(vec![vec![7, 8, 9], vec![10, 11, 12]]));
+
+        let result = SparseMatrix::hconcat(&[m1.clone(), m2, m3]).unwrap();
+        let expected = SparseMatrix::from_dense(&Matrix::from(vec![
+            vec![1, 2, 5, 7, 8, 9],
+            vec![3, 4, 6, 10, 11, 12],
+        ]));
+        assert_eq!(result, expected);
+
+        let m4 = SparseMatrix::from_dense(&Matrix::from(vec![vec![1, 2, 3]]));
+        let result = SparseMatrix::hconcat(&[m1, m4]);
+        assert!(result.is_none());
+
+        let result = SparseMatrix::<u32>::hconcat(&[]);
+        assert_eq!(result.unwrap(), SparseMatrix::empty());
     }
 }
