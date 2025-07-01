@@ -54,6 +54,28 @@ impl<R: Clone + Zero> Matrix<R> {
                 .for_each(|row| row.resize(new_size, R::zero()));
         }
     }
+
+    pub fn hconcat(ms: &[Matrix<R>]) -> Option<Self> {
+        if ms.is_empty() {
+            return Some(Self::empty());
+        }
+
+        let nrows = ms[0].nrows;
+        if !ms.iter().all(|m| m.nrows == nrows) {
+            return None;
+        }
+
+        let ncols: usize = ms.iter().map(|m| m.ncols).sum();
+        let mut vals = vec![Vec::with_capacity(ncols); nrows];
+
+        for m in ms {
+            for (row, crow) in m.vals.iter().zip(vals.iter_mut()) {
+                crow.extend(row.clone());
+            }
+        }
+
+        Some(vals.into())
+    }
 }
 
 impl<R: Clone + One + Zero> Matrix<R> {
@@ -241,5 +263,23 @@ mod tests {
         let m3 = Matrix::from(vec![vec![1, 2], vec![3, 4]]);
         let result = m1.try_mul_mat(&m3);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_matrix_hstack() {
+        let m1 = Matrix::from(vec![vec![1, 2], vec![3, 4]]);
+        let m2 = Matrix::from(vec![vec![5], vec![6]]);
+        let m3 = Matrix::from(vec![vec![7, 8, 9], vec![10, 11, 12]]);
+
+        let result = Matrix::hconcat(&[m1.clone(), m2, m3]).unwrap();
+        let expected = Matrix::from(vec![vec![1, 2, 5, 7, 8, 9], vec![3, 4, 6, 10, 11, 12]]);
+        assert_eq!(result, expected);
+
+        let m4 = Matrix::from(vec![vec![1, 2, 3]]);
+        let result = Matrix::hconcat(&[m1, m4]);
+        assert!(result.is_none());
+
+        let result = Matrix::<i32>::hconcat(&[]);
+        assert_eq!(result.unwrap(), Matrix::empty());
     }
 }
