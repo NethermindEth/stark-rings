@@ -123,6 +123,26 @@ impl<R: CanonicalDeserialize> CanonicalDeserialize for Matrix<R> {
 }
 
 impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Send + Sync + Sum> Matrix<R> {
+    pub fn checked_mul_mat(&self, m: &Matrix<R>) -> Option<Matrix<R>> {
+        if self.ncols != m.nrows {
+            return None;
+        }
+
+        let vals = cfg_iter!(self.vals)
+            .map(|row| {
+                (0..m.ncols)
+                    .map(|j| {
+                        (0..self.ncols)
+                            .map(|k| row[k].clone() * &m.vals[k][j])
+                            .sum()
+                    })
+                    .collect::<Vec<R>>()
+            })
+            .collect::<Vec<Vec<R>>>();
+
+        Some(vals.into())
+    }
+
     pub fn checked_mul_vec(&self, v: &[R]) -> Option<Vec<R>> {
         if self.ncols != v.len() {
             return None;
@@ -138,6 +158,19 @@ impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Send + Sync + Sum> Matrix<R> {
     pub fn try_mul_vec(&self, v: &[R]) -> Result<Vec<R>, AlgebraError> {
         self.checked_mul_vec(v)
             .ok_or(AlgebraError::DifferentLengths(self.ncols, v.len()))
+    }
+
+    pub fn try_mul_mat(&self, m: &Matrix<R>) -> Result<Matrix<R>, AlgebraError> {
+        self.checked_mul_mat(m)
+            .ok_or(AlgebraError::DifferentLengths(self.ncols, m.nrows))
+    }
+}
+
+impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Send + Sync + Sum> Mul<&Matrix<R>> for &Matrix<R> {
+    type Output = Matrix<R>;
+
+    fn mul(self, m: &Matrix<R>) -> Matrix<R> {
+        self.try_mul_mat(m).unwrap()
     }
 }
 
@@ -194,5 +227,19 @@ mod tests {
 
         m *= &r;
         assert_eq!(m, vec![vec![0, 6, 0], vec![0, 0, 0], vec![3, 12, 9]].into())
+    }
+
+    #[test]
+    fn test_matrix_mul_mat() {
+        let m1 = sample_matrix();
+        let m2 = Matrix::from(vec![vec![1, 2], vec![3, 4], vec![5, 6]]);
+
+        let result = m1.try_mul_mat(&m2).unwrap();
+        let expected = Matrix::from(vec![vec![6, 8], vec![0, 0], vec![28, 36]]);
+        assert_eq!(result, expected);
+
+        let m3 = Matrix::from(vec![vec![1, 2], vec![3, 4]]);
+        let result = m1.try_mul_mat(&m3);
+        assert!(result.is_err());
     }
 }
