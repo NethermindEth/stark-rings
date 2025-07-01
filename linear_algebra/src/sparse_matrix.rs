@@ -3,6 +3,7 @@ use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
 use ark_std::{
+    cmp::Ordering,
     io::{Read, Write},
     iter::Sum,
     ops::{Mul, MulAssign},
@@ -161,7 +162,7 @@ impl<R: CanonicalDeserialize> CanonicalDeserialize for SparseMatrix<R> {
     }
 }
 
-impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Sum + Send + Sync> SparseMatrix<R> {
+impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Sum + Send + Sync + Zero> SparseMatrix<R> {
     pub fn checked_mul_vec(&self, v: &[R]) -> Option<Vec<R>> {
         if self.ncols != v.len() {
             return None;
@@ -178,13 +179,88 @@ impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Sum + Send + Sync> SparseMatrix
         self.checked_mul_vec(v)
             .ok_or(AlgebraError::DifferentLengths(self.ncols, v.len()))
     }
+
+    pub fn checked_mul_mat(&self, m: &SparseMatrix<R>) -> Option<SparseMatrix<R>> {
+        if self.ncols != m.nrows {
+            return None;
+        }
+
+        let mut m_cols: Vec<Vec<(R, usize)>> = vec![Vec::new(); m.ncols];
+        for (row_idx, row) in m.coeffs.iter().enumerate() {
+            for (val, col_idx) in row.iter() {
+                m_cols[*col_idx].push((val.clone(), row_idx));
+            }
+        }
+
+        let coeffs = cfg_iter!(self.coeffs)
+            .map(|row| {
+                let mut res_row = Vec::new();
+                for (j, col) in m_cols.iter().enumerate() {
+                    // Compute dot product between this row and column j
+                    let mut sum = None;
+                    let mut row_iter = row.iter().peekable();
+                    let mut col_iter = col.iter().peekable();
+                    while let (Some(&(ref r_val, r_idx)), Some(&(ref c_val, c_idx))) =
+                        (row_iter.peek(), col_iter.peek())
+                    {
+                        match r_idx.cmp(c_idx) {
+                            Ordering::Less => {
+                                row_iter.next();
+                            }
+                            Ordering::Greater => {
+                                col_iter.next();
+                            }
+                            Ordering::Equal => {
+                                let product = r_val.clone() * c_val;
+                                if !product.is_zero() {
+                                    sum = Some(match sum {
+                                        Some(s) => s + product,
+                                        None => product,
+                                    });
+                                }
+                                row_iter.next();
+                                col_iter.next();
+                            }
+                        }
+                    }
+                    if let Some(s) = sum {
+                        res_row.push((s, j));
+                    }
+                }
+                res_row
+            })
+            .collect::<Vec<Vec<(R, usize)>>>();
+
+        Some(SparseMatrix {
+            nrows: self.nrows,
+            ncols: m.ncols,
+            coeffs,
+        })
+    }
+
+    pub fn try_mul_mat(&self, m: &SparseMatrix<R>) -> Result<SparseMatrix<R>, AlgebraError> {
+        self.checked_mul_mat(m)
+            .ok_or(AlgebraError::DifferentLengths(self.ncols, m.nrows))
+    }
 }
 
-impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Send + Sum + Sync> Mul<&[R]> for &SparseMatrix<R> {
+impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Send + Sum + Sync + Zero> Mul<&[R]>
+    for &SparseMatrix<R>
+{
     type Output = Vec<R>;
 
     fn mul(self, v: &[R]) -> Vec<R> {
         self.try_mul_vec(v).unwrap()
+    }
+}
+
+impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Send + Sum + Sync + Zero> Mul<&SparseMatrix<R>>
+    for &SparseMatrix<R>
+{
+    type Output = SparseMatrix<R>;
+
+    fn mul(self, m: &SparseMatrix<R>) -> SparseMatrix<R> {
+        self.try_mul_mat(m).unwrap()
     }
 }
 
@@ -256,5 +332,21 @@ mod tests {
             m.to_dense(),
             vec![vec![0, 6, 0], vec![0, 0, 0], vec![3, 12, 9]].into()
         )
+    }
+
+    #[test]
+    fn test_sparse_matrix_mul_mat() {
+        let m1 = sample_sparse();
+        let m2 =
+            SparseMatrix::from_dense(&Matrix::from(vec![vec![1u32, 2], vec![3, 4], vec![5, 6]]));
+
+        let result = m1.try_mul_mat(&m2).unwrap();
+        let expected =
+            SparseMatrix::from_dense(&Matrix::from(vec![vec![6u32, 8], vec![0, 0], vec![28, 36]]));
+        assert_eq!(result, expected);
+
+        let m3 = SparseMatrix::from_dense(&Matrix::from(vec![vec![1u32, 2], vec![3, 4]]));
+        let result = m1.try_mul_mat(&m3);
+        assert!(result.is_err());
     }
 }
