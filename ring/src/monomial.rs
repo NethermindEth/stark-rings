@@ -42,13 +42,17 @@ pub fn psi<R: CoeffRing>() -> R {
         })
         .sum()
 }
+    
+pub fn exp<R: CoeffRing>(a: R::Coeff) -> Result<R, MonomialError<R>> {
+    Ok(R::monomial(a.center().to_usize()?) * a.sign())
+}
 
 /// Monomial range-check
 ///
 /// Calculates $\text{ct}(b \psi) \stackrel{?}{=} a$, where $b = \text{EXP(a)} = \text{sign}(a)X^a$.
 /// If the equality holds, then $a \in (-d', d')$.
 pub fn psi_range_check<R: CoeffRing>(a: R::Coeff) -> Result<(), MonomialError<R>> {
-    let b: R = R::monomial(a.center().to_usize()?) * a.sign();
+    let b: R = exp(a)?;
 
     let ct = (psi::<R>() * b).ct();
 
