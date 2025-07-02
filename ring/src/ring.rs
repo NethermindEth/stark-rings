@@ -145,7 +145,7 @@ pub trait Zq: Ring {
     }
 }
 
-impl<F: PrimeField + FromRandomBytes<F>> Zq for F {
+impl<C: FpConfig<N>, const N: usize> Zq for Fp<C, N> {
     fn to_u64(&self) -> Result<u64, ConversionError> {
         let bi = self.into_bigint();
         if bi > u64::MAX.into() {
@@ -156,8 +156,8 @@ impl<F: PrimeField + FromRandomBytes<F>> Zq for F {
 
     fn center(&self) -> Self {
         let bi = self.into_bigint();
-        if bi > F::MODULUS_MINUS_ONE_DIV_TWO {
-            let mut q = F::MODULUS;
+        if bi > Self::MODULUS_MINUS_ONE_DIV_TWO {
+            let mut q = Self::MODULUS;
             q.sub_with_borrow(&bi);
             Self::from_bigint(q).unwrap()
         } else {
@@ -167,12 +167,12 @@ impl<F: PrimeField + FromRandomBytes<F>> Zq for F {
 
     fn sign(&self) -> Self {
         let bi = self.into_bigint();
-        if bi > F::MODULUS_MINUS_ONE_DIV_TWO {
-            -Self::ONE
-        } else if bi <= F::MODULUS_MINUS_ONE_DIV_TWO {
-            Self::ONE
+        if bi > Self::MODULUS_MINUS_ONE_DIV_TWO {
+            -<Self as Field>::ONE
+        } else if bi <= Self::MODULUS_MINUS_ONE_DIV_TWO {
+            <Self as Field>::ONE
         } else {
-            Self::ZERO
+            <Self as Field>::ZERO
         }
     }
 }

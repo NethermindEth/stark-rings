@@ -25,19 +25,18 @@ pub trait OverField:
 }
 
 /// Polynomial ring, coefficients form
-pub trait CoeffRing: OverField + Mul<Self::Coeff, Output = Self> {
-    type Coeff: Zq;
-
-    fn ct(&self) -> Self::Coeff;
+pub trait CoeffRing: OverField
+where
+    Self::BaseRing: Zq,
+{
+    fn ct(&self) -> Self::BaseRing;
 }
 
 impl<O: OverField> CoeffRing for O
 where
     O::BaseRing: Zq,
 {
-    type Coeff = O::BaseRing;
-
-    fn ct(&self) -> Self::Coeff {
+    fn ct(&self) -> Self::BaseRing {
         self.coeffs()[0]
     }
 }
