@@ -134,8 +134,16 @@ impl<F: Field + FromRandomBytes<F>> Ring for F {
 
 /// Ring of integers
 pub trait Zq: Ring {
+    /// Convert self to `u64`
     fn to_u64(&self) -> Result<u64, ConversionError>;
+    /// Center self to around `(p-1)/2`
+    ///
+    /// Smaller values are kept the same, while larger values are shifted to `q-self`.
+    /// The absolute value of the signed representation is used as output.
     fn center(&self) -> Self;
+    /// Sign according to the center `(p-1)/2`
+    ///
+    /// Smaller values are mapped as 1, while larger values are mapped as -1 (`q-1`).
     fn sign(&self) -> Self;
 
     fn to_usize(&self) -> Result<usize, ConversionError> {

@@ -1,5 +1,6 @@
 use super::{CoeffRing, PolyRing, Zq};
 use crate::ConversionError;
+use ark_std::One;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -20,9 +21,9 @@ pub trait Monomial: PolyRing {
     }
 
     /// Monomial with coefficient `1`.
-    fn monomial(i: usize) -> Self {
+    fn monomial(i: usize, coeff: Self::BaseRing) -> Self {
         let mut m = Self::ZERO;
-        m.coeffs_mut()[i] = 1u128.into();
+        m.coeffs_mut()[i] = coeff;
         m
     }
 }
@@ -40,17 +41,21 @@ where
     let d_prime = R::dimension() / 2;
     (1..d_prime)
         .map(|i| {
-            (-R::ONE * R::monomial(d - i) + R::monomial(i))
+            (-R::ONE * R::monomial(d - i, R::BaseRing::one()) + R::monomial(i, R::BaseRing::one()))
                 * <R as PolyRing>::BaseRing::from(i as u128)
         })
         .sum()
 }
 
+/// \text{EXP} function
+///
+/// Computes a monomial using `a` as an exponent, where
+/// \text{EXP(a)} = \text{sign}(a)X^a
 pub fn exp<R: CoeffRing>(a: R::BaseRing) -> Result<R, MonomialError<R>>
 where
     R::BaseRing: Zq,
 {
-    Ok(R::monomial(a.center().to_usize()?) * a.sign())
+    Ok(R::monomial(a.center().to_usize()?, R::BaseRing::one()) * a.sign())
 }
 
 /// Monomial range-check
@@ -78,8 +83,8 @@ mod tests {
 
     #[test]
     fn test_monomial_ops() {
-        let x2 = RqPoly::monomial(2);
-        let x23 = RqPoly::monomial(23);
+        let x2 = RqPoly::monomial(2, <RqPoly as PolyRing>::BaseRing::one());
+        let x23 = RqPoly::monomial(23, <RqPoly as PolyRing>::BaseRing::one());
 
         // X^2 + X^2 = 2X^2
         assert_eq!(PolyRing::coeffs(&(x2 + x2))[2], 2.into());
