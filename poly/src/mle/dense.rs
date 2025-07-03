@@ -262,18 +262,20 @@ impl<R: Ring> AddAssign for DenseMultilinearExtension<R> {
 impl<R: Ring> Add for DenseMultilinearExtension<R> {
     type Output = Self;
 
-    fn add(mut self, rhs: Self) -> Self {
-        self += &rhs;
-        self
+    fn add(self, rhs: Self) -> Self {
+        let mut res = self;
+        res += &rhs;
+        res
     }
 }
 
 impl<'a, R: Ring> Add<&'a DenseMultilinearExtension<R>> for DenseMultilinearExtension<R> {
     type Output = Self;
 
-    fn add(mut self, rhs: &'a Self) -> Self {
-        self += rhs;
-        self
+    fn add(self, rhs: &'a Self) -> Self {
+        let mut res = self;
+        res += rhs;
+        res
     }
 }
 
@@ -325,7 +327,7 @@ impl<'a, R: Ring> SubAssign<&'a DenseMultilinearExtension<R>> for DenseMultiline
         );
 
         if self.evaluations.len() < rhs.evaluations.len() {
-            self.evaluations.resize(self.evaluations.len(), R::zero());
+            self.evaluations.resize(rhs.evaluations.len(), R::zero());
         }
         cfg_iter_mut!(self.evaluations)
             .zip(cfg_iter!(rhs.evaluations))
@@ -342,18 +344,20 @@ impl<R: Ring> SubAssign for DenseMultilinearExtension<R> {
 impl<R: Ring> Sub for DenseMultilinearExtension<R> {
     type Output = Self;
 
-    fn sub(mut self, other: Self) -> Self {
-        self -= &other;
-        self
+    fn sub(self, other: Self) -> Self {
+        let mut res = self;
+        res -= &other;
+        res
     }
 }
 
 impl<'a, R: Ring> Sub<&'a DenseMultilinearExtension<R>> for DenseMultilinearExtension<R> {
     type Output = Self;
 
-    fn sub(mut self, rhs: &'a Self) -> Self {
-        self -= rhs;
-        self
+    fn sub(self, rhs: &'a Self) -> Self {
+        let mut res = self;
+        res -= rhs;
+        res
     }
 }
 
@@ -366,19 +370,21 @@ impl<R: Ring> MulAssign<R> for DenseMultilinearExtension<R> {
 impl<R: Ring> Mul<R> for DenseMultilinearExtension<R> {
     type Output = Self;
 
-    fn mul(mut self, rhs: R) -> Self {
-        self *= rhs;
-        self
+    fn mul(self, rhs: R) -> Self {
+        let mut res = self;
+        res *= rhs;
+        res
     }
 }
 
 impl<R: Ring> Add<R> for DenseMultilinearExtension<R> {
     type Output = Self;
 
-    fn add(mut self, rhs: R) -> Self {
-        self.evaluations.iter_mut().for_each(|x| *x += rhs);
+    fn add(self, rhs: R) -> Self {
+        let mut res = self;
+        res.evaluations.iter_mut().for_each(|x| *x += rhs);
 
-        self
+        res
     }
 }
 
