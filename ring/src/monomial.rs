@@ -14,21 +14,21 @@ pub enum MonomialError<R: PolyRing> {
 /// Single-term polynomial $m = X^i \in R_q$
 ///
 /// We consider only the monomial set $\\{0, 1, X, ..., X^{d-1}\\}$.
-pub trait Monomial: PolyRing {
-    /// Zero monomial.
-    fn zero_monomial() -> Self {
-        Self::ZERO
-    }
-
-    /// Monomial with coefficient `1`.
-    fn monomial(i: usize, coeff: Self::BaseRing) -> Self {
-        let mut m = Self::ZERO;
-        m.coeffs_mut()[i] = coeff;
-        m
-    }
+pub fn monomial<R: PolyRing>(i: usize, coeff: R::BaseRing) -> R {
+    let mut m = R::ZERO;
+    m.coeffs_mut()[i] = coeff;
+    m
 }
 
-impl<R: PolyRing> Monomial for R {}
+/// Zero monomial
+pub fn zero_monomial<R: PolyRing>() -> R {
+    R::ZERO
+}
+
+/// Monomial with coefficient 1
+pub fn unit_monomial<R: PolyRing>(i: usize) -> R {
+    monomial(i, R::BaseRing::one())
+}
 
 /// $\psi$ table function
 ///
@@ -41,7 +41,7 @@ where
     let d_prime = R::dimension() / 2;
     (1..d_prime)
         .map(|i| {
-            (-R::ONE * R::monomial(d - i, R::BaseRing::one()) + R::monomial(i, R::BaseRing::one()))
+            (-R::ONE * unit_monomial::<R>(d - i) + unit_monomial::<R>(i))
                 * <R as PolyRing>::BaseRing::from(i as u128)
         })
         .sum()
@@ -55,7 +55,7 @@ pub fn exp<R: CoeffRing>(a: R::BaseRing) -> Result<R, MonomialError<R>>
 where
     R::BaseRing: Zq,
 {
-    Ok(R::monomial(a.center().to_usize()?, R::BaseRing::one()) * a.sign())
+    Ok(monomial::<R>(a.center().to_usize()?, R::BaseRing::one()) * a.sign())
 }
 
 /// Monomial range-check
@@ -78,14 +78,19 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{cyclotomic_ring::models::goldilocks::RqPoly, Monomial, PolyRing, Ring};
+    use crate::{cyclotomic_ring::models::goldilocks::RqPoly, PolyRing, Ring};
     // RqPoly has degree 24
 
     #[test]
     fn test_monomial_ops() {
-        let x2 = RqPoly::monomial(2, <RqPoly as PolyRing>::BaseRing::one());
-        let x23 = RqPoly::monomial(23, <RqPoly as PolyRing>::BaseRing::one());
+        let zero = zero_monomial::<RqPoly>();
+        let one = unit_monomial::<RqPoly>(0);
 
+        let x2 = monomial::<RqPoly>(2, <RqPoly as PolyRing>::BaseRing::one());
+        let x23 = monomial::<RqPoly>(23, <RqPoly as PolyRing>::BaseRing::one());
+
+        // 0 + 1 = 1
+        assert_eq!(zero + one, one);
         // X^2 + X^2 = 2X^2
         assert_eq!(PolyRing::coeffs(&(x2 + x2))[2], 2.into());
         // X^2 * X^23 = -X
