@@ -1,5 +1,5 @@
 use super::{CoeffRing, PolyRing, Zq};
-use crate::ConversionError;
+use crate::{ConversionError, Ring};
 use ark_std::One;
 use thiserror::Error;
 
@@ -41,17 +41,34 @@ where
     let d_prime = R::dimension() / 2;
     (1..d_prime)
         .map(|i| {
-            (-R::ONE * unit_monomial::<R>(d - i) + unit_monomial::<R>(i))
+            (unit_monomial::<R>(i) - unit_monomial::<R>(d - i))
                 * <R as PolyRing>::BaseRing::from(i as u128)
         })
         .sum()
 }
 
-/// \text{EXP} function
+/// \text{exp} unit function
+///
+/// Computes a unit monomial using `a` as an exponent, where
+/// \text{exp(a)} = \text{sign}(a)X^a.
+/// When a < 0, the output will be the unit monomial X^{d-a}.
+pub fn exp<R: CoeffRing>(a: R::BaseRing) -> Result<R, MonomialError<R>>
+where
+    R::BaseRing: Zq,
+{
+    let centered = a.center().to_usize()?;
+    if a.sign() + R::BaseRing::ONE > R::BaseRing::ZERO {
+        Ok(unit_monomial(centered))
+    } else {
+        Ok(unit_monomial(R::dimension() - centered))
+    }
+}
+
+/// \text{exp} signed function
 ///
 /// Computes a monomial using `a` as an exponent, where
-/// \text{EXP(a)} = \text{sign}(a)X^a
-pub fn exp<R: CoeffRing>(a: R::BaseRing) -> Result<R, MonomialError<R>>
+/// \text{exp(a)} = \text{sign}(a)X^a
+pub fn exp_signed<R: CoeffRing>(a: R::BaseRing) -> Result<R, MonomialError<R>>
 where
     R::BaseRing: Zq,
 {
@@ -78,8 +95,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{cyclotomic_ring::models::goldilocks::RqPoly, PolyRing, Ring};
-    // RqPoly has degree 24
+    use crate::{cyclotomic_ring::models::frog_ring::RqPoly, PolyRing};
+    // RqPoly has degree 16
 
     #[test]
     fn test_monomial_ops() {
@@ -87,32 +104,32 @@ mod tests {
         let one = unit_monomial::<RqPoly>(0);
 
         let x2 = monomial::<RqPoly>(2, <RqPoly as PolyRing>::BaseRing::one());
-        let x23 = monomial::<RqPoly>(23, <RqPoly as PolyRing>::BaseRing::one());
+        let x15 = monomial::<RqPoly>(15, <RqPoly as PolyRing>::BaseRing::one());
 
         // 0 + 1 = 1
         assert_eq!(zero + one, one);
         // X^2 + X^2 = 2X^2
         assert_eq!(PolyRing::coeffs(&(x2 + x2))[2], 2.into());
-        // X^2 * X^23 = -X
+        // X^2 * X^15 = -X
         assert_eq!(
-            PolyRing::coeffs(&(x2 * x23))[1],
+            PolyRing::coeffs(&(x2 * x15))[1],
             -<RqPoly as PolyRing>::BaseRing::ONE
         );
     }
 
     #[test]
     fn test_monomial_range_check() {
-        // Range check will pass for values -11..=11
+        // Range check will pass for values -7..=7
         let a1 = <RqPoly as PolyRing>::BaseRing::from(1u128);
-        let a11 = <RqPoly as PolyRing>::BaseRing::from(11u128);
-        let a12 = <RqPoly as PolyRing>::BaseRing::from(12u128);
+        let a7 = <RqPoly as PolyRing>::BaseRing::from(7u128);
+        let a8 = <RqPoly as PolyRing>::BaseRing::from(8u128);
         let an1 = <RqPoly as PolyRing>::BaseRing::from(0u128) - a1;
-        let an12 = <RqPoly as PolyRing>::BaseRing::from(0u128) - a12;
+        let an8 = <RqPoly as PolyRing>::BaseRing::from(0u128) - a8;
 
         assert!(psi_range_check::<RqPoly>(a1).is_ok());
-        assert!(psi_range_check::<RqPoly>(a11).is_ok());
-        assert!(psi_range_check::<RqPoly>(a12).is_err());
+        assert!(psi_range_check::<RqPoly>(a7).is_ok());
+        assert!(psi_range_check::<RqPoly>(a8).is_err());
         assert!(psi_range_check::<RqPoly>(an1).is_ok());
-        assert!(psi_range_check::<RqPoly>(an12).is_err());
+        assert!(psi_range_check::<RqPoly>(an8).is_err());
     }
 }
