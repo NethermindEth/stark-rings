@@ -37,18 +37,6 @@ impl<R> SparseMatrix<R> {
     pub fn ncols(&self) -> usize {
         self.ncols
     }
-
-    pub fn pad_rows(&mut self, new_size: usize) {
-        if new_size > self.nrows() {
-            self.nrows = new_size;
-        }
-    }
-
-    pub fn pad_cols(&mut self, new_size: usize) {
-        if new_size > self.ncols() {
-            self.ncols = new_size;
-        }
-    }
 }
 
 impl<R: Clone> SparseMatrix<R> {
@@ -82,6 +70,19 @@ impl<R: Clone> SparseMatrix<R> {
             ncols,
             coeffs,
         })
+    }
+
+    pub fn pad_rows(&mut self, new_size: usize) {
+        if new_size > self.nrows() {
+            self.nrows = new_size;
+            self.coeffs.resize(new_size, vec![]);
+        }
+    }
+
+    pub fn pad_cols(&mut self, new_size: usize) {
+        if new_size > self.ncols() {
+            self.ncols = new_size;
+        }
     }
 }
 
