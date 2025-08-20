@@ -91,13 +91,13 @@ impl<F: Clone> SymmetricMatrix<F> {
 impl<F: Clone> Index<(usize, usize)> for SymmetricMatrix<F> {
     type Output = F;
 
-    fn index(&self, index: (usize, usize)) -> &Self::Output {
+    fn index(&self, index: (usize, usize)) -> &F {
         self.at(index.0, index.1)
     }
 }
 
 impl<F: Clone> IndexMut<(usize, usize)> for SymmetricMatrix<F> {
-    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut F {
         self.at_mut(index.0, index.1)
     }
 }

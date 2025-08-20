@@ -14,10 +14,10 @@ mod decomposition;
 mod ntt;
 
 mod fq_def {
-    #![allow(non_local_definitions)]
-    use ark_ff::{Fp256, MontBackend};
+    #![allow(non_local_definitions, unexpected_cfgs)]
+    use ark_ff::{Fp256, MontBackend, MontConfig};
 
-    #[derive(ark_ff::MontConfig)]
+    #[derive(MontConfig)]
     #[modulus = "3618502788666131213697322783095070105623107215331596699973092056135872020481"]
     #[generator = "3"]
     pub struct FqConfig;
