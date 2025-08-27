@@ -9,8 +9,8 @@ use crate::{
 };
 
 impl ConvertibleRing for Fq {
-    type UnsignedInt = UnsignedRepresentative<BigUint>;
     type SignedInt = SignedRepresentative<BigInt>;
+    type UnsignedInt = UnsignedRepresentative<BigUint>;
 }
 
 #[cfg(feature = "std")]

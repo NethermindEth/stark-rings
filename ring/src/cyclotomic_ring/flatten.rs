@@ -1,7 +1,7 @@
 //!
-//! This module introduces a function `flatten_to_coeffs` on vectors of cyclotomic ring elements
-//! to cheaply cast them into vectors of corresponding base field coefficients and its "inverse" `promote_from_coeffs`.
-//!
+//! This module introduces a function `flatten_to_coeffs` on vectors of
+//! cyclotomic ring elements to cheaply cast them into vectors of corresponding
+//! base field coefficients and its "inverse" `promote_from_coeffs`.
 use crate::PolyRing;
 use ark_std::vec::*;
 

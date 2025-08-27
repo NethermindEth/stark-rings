@@ -34,25 +34,21 @@ pub type RqPoly = CyclotomicPolyRingGeneral<GoldilocksRingConfig, 1, { ntt::D }>
 impl Fp3Config for Goldilocks3Config {
     type Fp = Fq;
 
+    // Do we even need these?
+    // NQR ^ (MODULUS^i - 1)/3, i=0,1,2 with NQR = u = (0,1,0)
+    const FROBENIUS_COEFF_FP3_C1: &'static [Fq] = &[];
+    // NQR ^ (2*MODULUS^i - 2)/3, i=0,1,2 with NQR = u = (0,1,0)
+    const FROBENIUS_COEFF_FP3_C2: &'static [Fq] = &[];
     const NONRESIDUE: Self::Fp = MontFp!("1099511627776");
-
-    const TWO_ADICITY: u32 = 32;
-
-    const TRACE_MINUS_ONE_DIV_TWO: &'static [u64] =
-        &[9223372049739677694, 9223372049739677692, 2147483646];
-
     // 7 ^ t.
     const QUADRATIC_NONRESIDUE_TO_T: ark_ff::Fp3<Self> = Fp3::new(
         MontFp!("3607031617444012685"),
         <Fq as Field>::ZERO,
         <Fq as Field>::ZERO,
     );
-
-    // Do we even need these?
-    // NQR ^ (MODULUS^i - 1)/3, i=0,1,2 with NQR = u = (0,1,0)
-    const FROBENIUS_COEFF_FP3_C1: &'static [Fq] = &[];
-    // NQR ^ (2*MODULUS^i - 2)/3, i=0,1,2 with NQR = u = (0,1,0)
-    const FROBENIUS_COEFF_FP3_C2: &'static [Fq] = &[];
+    const TRACE_MINUS_ONE_DIV_TWO: &'static [u64] =
+        &[9223372049739677694, 9223372049739677692, 2147483646];
+    const TWO_ADICITY: u32 = 32;
 }
 
 pub type Fq3 = Fp3<Goldilocks3Config>;
@@ -71,8 +67,8 @@ impl FromRandomBytes<Fq3> for Fq3 {
 pub struct GoldilocksRingConfig;
 
 impl CyclotomicConfig<1> for GoldilocksRingConfig {
-    type BaseFieldConfig = MontBackend<FqConfig, 1>;
     type BaseCRTField = Fq3;
+    type BaseFieldConfig = MontBackend<FqConfig, 1>;
 
     const CRT_FIELD_EXTENSION_DEGREE: usize = 3;
 
@@ -245,7 +241,8 @@ mod test {
         let ntt_mul = ntt_form_1 * ntt_form_2;
         let coeffs_mul = coeff_1 * coeff_2;
 
-        // ntt_mul.coeffs() performs INTT while coeffs_mul.coeffs() just returns the coefficients
+        // ntt_mul.coeffs() performs INTT while coeffs_mul.coeffs() just returns the
+        // coefficients
         assert_eq!(ntt_mul.icrt(), coeffs_mul);
     }
 

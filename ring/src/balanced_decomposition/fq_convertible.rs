@@ -17,7 +17,8 @@ impl<C: FpConfig<1>> From<Fp64<C>> for UnsignedRepresentative<u128> {
     }
 }
 
-/// Map [0, q[ to [-m, m] using [0, m] -> [0, m] and ]m, q[ -> [-m, 0[, where m = (q-1)/2, assuming q is odd
+/// Map [0, q[ to [-m, m] using [0, m] -> [0, m] and ]m, q[ -> [-m, 0[, where m
+/// = (q-1)/2, assuming q is odd
 impl<C: FpConfig<1>> From<Fp64<C>> for SignedRepresentative<i128> {
     fn from(value: Fp64<C>) -> Self {
         debug_assert!(Fp64::<C>::MODULUS.is_odd());
@@ -32,7 +33,8 @@ impl<C: FpConfig<1>> From<Fp64<C>> for SignedRepresentative<i128> {
     }
 }
 
-/// Map [-m, m] to [0, q[ using [0, m] -> [0, m] and [-m, 0[ -> [m, q[, where m = (q-1)/2, assuming q is odd
+/// Map [-m, m] to [0, q[ using [0, m] -> [0, m] and [-m, 0[ -> [m, q[, where m
+/// = (q-1)/2, assuming q is odd
 impl<C: FpConfig<1>> From<SignedRepresentative<i128>> for Fp64<C> {
     fn from(value: SignedRepresentative<i128>) -> Self {
         debug_assert!(Fp64::<C>::MODULUS.is_odd());
@@ -54,6 +56,6 @@ impl<C: FpConfig<1>> From<UnsignedRepresentative<u128>> for Fp64<C> {
 }
 
 impl<C: FpConfig<1>> ConvertibleRing for Fp64<C> {
-    type UnsignedInt = UnsignedRepresentative<u128>;
     type SignedInt = SignedRepresentative<i128>;
+    type UnsignedInt = UnsignedRepresentative<u128>;
 }

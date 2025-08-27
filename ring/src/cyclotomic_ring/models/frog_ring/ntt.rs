@@ -1,6 +1,5 @@
 //!
 //! A CRT implementation for the ring Fq[X]/(X^16+1).
-//!
 use ark_ff::BigInt;
 use ark_std::vec::*;
 
@@ -29,13 +28,14 @@ const FOUR_INV: Fq = Fq::new(BigInt([11934069390994187731u64]));
 
 /// Given `coefficients` of a polynoimial `f mod X^16 + 1`
 /// returns its CRT:
-/// *  `f mod X^3-NONRESIDUE`,
-/// *  `f mod X^3-NONRESIDUE^5`,
-/// *  `f mod X^3-NONRESIDUE^3`,
-/// *  `f mod X^3-NONRESIDUE^7`.
+/// * `f mod X^3-NONRESIDUE`,
+/// * `f mod X^3-NONRESIDUE^5`,
+/// * `f mod X^3-NONRESIDUE^3`,
+/// * `f mod X^3-NONRESIDUE^7`.
 ///
 /// Each of the components is transformed into an element of `Fq4`
-/// by the corresponding unique isomorphism `Fq[X]/(X^4-NONRESIDUE^i) -> Fq[X]/(X^4-NONRESIDUE)`.
+/// by the corresponding unique isomorphism `Fq[X]/(X^4-NONRESIDUE^i) ->
+/// Fq[X]/(X^4-NONRESIDUE)`.
 ///
 /// # Panics
 ///
@@ -50,7 +50,8 @@ pub fn frog_crt(coefficients: Vec<Fq>) -> Vec<Fq4> {
 /// Same as `frog_crt` but performs the CRT in place.
 /// Takes coefficients of a polynomial and outputs
 /// components of the corresponding CRT factors in each
-/// quadriple `coefficients[4*i]`, `coefficients[4*i + 1]`, `coefficients[4*i+2]`, `coefficients[4*i+3]`.
+/// quadriple `coefficients[4*i]`, `coefficients[4*i + 1]`,
+/// `coefficients[4*i+2]`, `coefficients[4*i+3]`.
 ///
 /// # Panics
 ///
@@ -64,13 +65,14 @@ pub fn frog_crt_in_place(coefficients: &mut [Fq]) {
 
 /// The inverse CRT.
 /// Takes the CRT representation in the order:
-/// *  `f mod X^3-NONRESIDUE`,
-/// *  `f mod X^3-NONRESIDUE^5`,
-/// *  `f mod X^3-NONRESIDUE^3`,
-/// *  `f mod X^3-NONRESIDUE^7`.
+/// * `f mod X^3-NONRESIDUE`,
+/// * `f mod X^3-NONRESIDUE^5`,
+/// * `f mod X^3-NONRESIDUE^3`,
+/// * `f mod X^3-NONRESIDUE^7`.
 ///
-/// Each of the components is in its isomorphic form in the `Fq[X]/(X^4-NONRESIDUE)`.
-/// Returns the coefficients of the polynomial encoded by this CRT form.
+/// Each of the components is in its isomorphic form in the
+/// `Fq[X]/(X^4-NONRESIDUE)`. Returns the coefficients of the polynomial encoded
+/// by this CRT form.
 ///
 /// # Panics
 ///
@@ -83,8 +85,9 @@ pub fn frog_icrt(evaluations: Vec<Fq4>) -> Vec<Fq> {
 }
 
 /// Same as `frog_icrt` but performs the inverse CRT in place.
-/// Each triple `evaluations[4*i]`, `evaluations[4*i + 1]`, `evaluations[4*i+2]`, `evaluations[4*i+3]`
-/// has to be an `Fq4` element. In the order described in `frog_icrt`'s docstring.
+/// Each triple `evaluations[4*i]`, `evaluations[4*i + 1]`,
+/// `evaluations[4*i+2]`, `evaluations[4*i+3]` has to be an `Fq4` element. In
+/// the order described in `frog_icrt`'s docstring.
 ///
 /// # Panics
 ///
@@ -189,8 +192,9 @@ fn serial_frog_icrt_in_place(evaluations: &mut [Fq]) {
 
 /// At the end of CRT we get elements in different (although isomorphic)
 /// degree-4 extensions of Fq,
-/// this function converts each triple `c[4 * i]`, `c[4 * i + 1]`, `c[4 * i + 2]`, `c[4 * i + 3]`
-/// into coefficients of an element from Fq[X]/(X^4-NONRESIDUE)=Fq4.
+/// this function converts each triple `c[4 * i]`, `c[4 * i + 1]`, `c[4 * i +
+/// 2]`, `c[4 * i + 3]` into coefficients of an element from
+/// Fq[X]/(X^4-NONRESIDUE)=Fq4.
 #[inline(always)]
 fn homogenize_fq4(c: &mut [Fq]) {
     nonresidue_to_nonresidue(&mut c[0..4]);

@@ -1,6 +1,6 @@
 //!
-//! A CRT implementation for the ring Fq[X]/(X^16 + 1), where q is the Starknet prime.
-//!
+//! A CRT implementation for the ring Fq[X]/(X^16 + 1), where q is the Starknet
+//! prime.
 use ark_ff::MontFp;
 use ark_std::vec::*;
 
@@ -56,9 +56,12 @@ const SIXTEEN_INV_TIMES_ROOT_OF_UNITY_32_24: Fq =
 
 /// Given `coefficients` of a polynoimial `f mod X^16 + 1`
 /// returns its evaluations on the sequence:
-/// `ROOTS_OF_UNITY_32[1], ROOTS_OF_UNITY_32[17], ROOTS_OF_UNITY_32[9], ROOTS_OF_UNITY_32[25], ROOTS_OF_UNITY_32[5], ROOTS_OF_UNITY_32[21],
-/// ROOTS_OF_UNITY_32[13], ROOTS_OF_UNITY_32[29], ROOTS_OF_UNITY_32[3], ROOTS_OF_UNITY_32[19], ROOTS_OF_UNITY_32[11], ROOTS_OF_UNITY_32[27],
-/// ROOTS_OF_UNITY_32[7], ROOTS_OF_UNITY_32[23], ROOTS_OF_UNITY_32[15], ROOTS_OF_UNITY_32[31]`. In this exact order.
+/// `ROOTS_OF_UNITY_32[1], ROOTS_OF_UNITY_32[17], ROOTS_OF_UNITY_32[9],
+/// ROOTS_OF_UNITY_32[25], ROOTS_OF_UNITY_32[5], ROOTS_OF_UNITY_32[21],
+/// ROOTS_OF_UNITY_32[13], ROOTS_OF_UNITY_32[29], ROOTS_OF_UNITY_32[3],
+/// ROOTS_OF_UNITY_32[19], ROOTS_OF_UNITY_32[11], ROOTS_OF_UNITY_32[27],
+/// ROOTS_OF_UNITY_32[7], ROOTS_OF_UNITY_32[23], ROOTS_OF_UNITY_32[15],
+/// ROOTS_OF_UNITY_32[31]`. In this exact order.
 ///
 /// # Panics
 ///
@@ -82,7 +85,8 @@ pub fn stark_prime_crt_in_place(coefficients: &mut [Fq]) {
     serial_stark_prime_crt_in_place(coefficients)
 }
 
-/// The inverse CRT. The order of evaluations as in the return of the direct CRT.
+/// The inverse CRT. The order of evaluations as in the return of the direct
+/// CRT.
 ///
 /// Returns the coefficients of the polynomial encoded by this CRT form.
 ///

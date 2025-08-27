@@ -1,6 +1,7 @@
 use ark_std::{ptr, slice, vec::*};
 
-/// Enables Chinese Remainder Transform (CRT) conversion from coefficient representation to NTT representation.
+/// Enables Chinese Remainder Transform (CRT) conversion from coefficient
+/// representation to NTT representation.
 pub trait CRT: Sized {
     type CRTForm;
 
@@ -23,7 +24,8 @@ pub trait CRT: Sized {
     }
 }
 
-/// Enables Inverse Chinese Remainder Transform (ICRT) conversion from NTT back to coefficient representation.
+/// Enables Inverse Chinese Remainder Transform (ICRT) conversion from NTT back
+/// to coefficient representation.
 pub trait ICRT: Sized {
     type ICRTForm;
 

@@ -37,10 +37,9 @@ pub struct FrogRingConfig;
 impl Fp2Config for Frog2Config {
     type Fp = Fq;
 
-    const NONRESIDUE: Self::Fp = MontFp!("2755067726615789629");
-
     const FROBENIUS_COEFF_FP2_C1: &'static [Self::Fp] =
         &[<Fq as Field>::ONE, MontFp!("15912092521325583640")];
+    const NONRESIDUE: Self::Fp = MontFp!("2755067726615789629");
 }
 
 pub type Fq2 = Fp2<Frog2Config>;
@@ -48,14 +47,13 @@ pub type Fq2 = Fp2<Frog2Config>;
 impl Fp4Config for Frog4Config {
     type Fp2Config = Frog2Config;
 
-    const NONRESIDUE: Fq2 = Fp2::new(<Fq as Field>::ZERO, <Fq as Field>::ONE);
-
     const FROBENIUS_COEFF_FP4_C1: &'static [<Self::Fp2Config as Fp2Config>::Fp] = &[
         <Fq as Field>::ONE,
         MontFp!("2674048055506678227"),
         MontFp!("15912092521325583640"),
         MontFp!("13238044465818905414"),
     ];
+    const NONRESIDUE: Fq2 = Fp2::new(<Fq as Field>::ZERO, <Fq as Field>::ONE);
 }
 
 pub type Fq4 = Fp4<Frog4Config>;
@@ -72,8 +70,8 @@ impl FromRandomBytes<Fq4> for Fq4 {
 }
 
 impl CyclotomicConfig<1> for FrogRingConfig {
-    type BaseFieldConfig = MontBackend<FqConfig, 1>;
     type BaseCRTField = Fq4;
+    type BaseFieldConfig = MontBackend<FqConfig, 1>;
 
     const CRT_FIELD_EXTENSION_DEGREE: usize = 4;
 
@@ -226,7 +224,8 @@ mod test {
         let ntt_mul = ntt_form_1 * ntt_form_2;
         let coeffs_mul = coeff_1 * coeff_2;
 
-        // ntt_mul.coeffs() performs INTT while coeffs_mul.coeffs() just returns the coefficients
+        // ntt_mul.coeffs() performs INTT while coeffs_mul.coeffs() just returns the
+        // coefficients
         assert_eq!(ntt_mul.icrt(), coeffs_mul);
     }
 

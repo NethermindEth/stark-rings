@@ -49,10 +49,12 @@ impl<R: Ring> SparseMultilinearExtension<R> {
             zero: R::zero(),
         }
     }
+
     pub fn evaluate(&self, point: &[R]) -> R {
         assert!(point.len() == self.num_vars);
         self.fixed_variables(point)[0]
     }
+
     /// Outputs an `l`-variate multilinear extension where value of evaluations
     /// are sampled uniformly at random. The number of nonzero entries is
     /// `num_nonzero_entries` and indices of those nonzero entries are
@@ -90,7 +92,8 @@ impl<R: Ring> SparseMultilinearExtension<R> {
         }
     }
 
-    /// Returns the sparse MLE from the given matrix, without modifying the original matrix.
+    /// Returns the sparse MLE from the given matrix, without modifying the
+    /// original matrix.
     pub fn from_matrix(m: &SparseMatrix<R>) -> Self {
         let n_rows = m.nrows.next_power_of_two();
         let n_cols = m.ncols.next_power_of_two();
@@ -131,6 +134,7 @@ impl<R: Ring> MultilinearExtension<R> for SparseMultilinearExtension<R> {
     fn num_vars(&self) -> usize {
         self.num_vars
     }
+
     /// Outputs an `l`-variate multilinear extension where value of evaluations
     /// are sampled uniformly at random. The number of nonzero entries is
     /// `sqrt(2^num_vars)` and indices of those nonzero entries are distributed
@@ -479,7 +483,8 @@ mod tests {
         ]);
         let A_mle = SparseMultilinearExtension::from_matrix(&A);
         assert_eq!(A_mle.evaluations.len(), 23); // 23 non-zero elements
-        assert_eq!(A_mle.num_vars, 6); // 5x5 matrix, thus 3bit x 3bit, thus 2^6=64 evals
+        assert_eq!(A_mle.num_vars, 6); // 5x5 matrix, thus 3bit x 3bit, thus
+                                       // 2^6=64 evals
     }
 
     #[test]
@@ -489,14 +494,16 @@ mod tests {
         let n_vars = 3;
         let z_mle = SparseMultilinearExtension::from_slice(n_vars, &z);
 
-        // check that the z_mle evaluated over the boolean hypercube equals the vec z_i values
+        // check that the z_mle evaluated over the boolean hypercube equals the vec z_i
+        // values
         let bhc = boolean_hypercube(z_mle.num_vars);
 
         for (i, z_i) in z.iter().enumerate() {
             let s_i = &bhc[i];
             assert_eq!(z_mle.evaluate(s_i), z_i.clone());
         }
-        // for the rest of elements of the boolean hypercube, expect it to evaluate to zero
+        // for the rest of elements of the boolean hypercube, expect it to evaluate to
+        // zero
         for s_i in bhc.iter().take(1 << z_mle.num_vars).skip(z.len()) {
             assert_eq!(z_mle.fixed_variables(s_i)[0], R::zero());
         }

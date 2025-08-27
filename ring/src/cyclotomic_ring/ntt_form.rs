@@ -100,8 +100,8 @@ impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Hash
 impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Ring
     for CyclotomicPolyRingNTTGeneral<C, N, D>
 {
-    const ZERO: Self = Self([<C::BaseCRTField as Field>::ZERO; D]);
     const ONE: Self = Self([<C::BaseCRTField as Field>::ONE; D]);
+    const ZERO: Self = Self([<C::BaseCRTField as Field>::ZERO; D]);
 }
 
 impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> FromRandomBytes<Self>

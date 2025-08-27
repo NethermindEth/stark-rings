@@ -30,18 +30,15 @@ pub type Fq3 = Fp3<BabyBear3ExtConfig>;
 pub struct Fp9ConfigWrapper<P: Fp9Config>(PhantomData<P>);
 
 impl<P: Fp9Config> CubicExtConfig for Fp9ConfigWrapper<P> {
-    type BasePrimeField = <P::Fp3Config as Fp3Config>::Fp;
     type BaseField = Fp3<P::Fp3Config>;
+    type BasePrimeField = <P::Fp3Config as Fp3Config>::Fp;
     type FrobCoeff = Self::BasePrimeField;
 
-    const SQRT_PRECOMP: Option<ark_ff::SqrtPrecomputation<CubicExtField<Self>>> = P::SQRT_PRECOMP;
-
     const DEGREE_OVER_BASE_PRIME_FIELD: usize = 9;
-
-    const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
-
     const FROBENIUS_COEFF_C1: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP9_C1;
     const FROBENIUS_COEFF_C2: &'static [Self::FrobCoeff] = P::FROBENIUS_COEFF_FP9_C2;
+    const NONRESIDUE: Self::BaseField = P::NONRESIDUE;
+    const SQRT_PRECOMP: Option<ark_ff::SqrtPrecomputation<CubicExtField<Self>>> = P::SQRT_PRECOMP;
 
     #[inline(always)]
     fn mul_base_field_by_nonresidue_in_place(fe: &mut Self::BaseField) -> &mut Self::BaseField {

@@ -1,6 +1,5 @@
 //!
 //! A CRT implementation for the ring Fq[X]/(X^24-X^12+1).
-//!
 use ark_ff::BigInt;
 use ark_std::vec::*;
 
@@ -49,17 +48,18 @@ const FOUR_INV: Fq = Fq::new(BigInt([13835058052060938241u64]));
 
 /// Given `coefficients` of a polynoimial `f mod X^24 - X^12 + 1`
 /// returns its CRT:
-/// *  `f mod X^3-NONRESIDUE`,
-/// *  `f mod X^3-NONRESIDUE^13`,
-/// *  `f mod X^3-NONRESIDUE^7`,
-/// *  `f mod X^3-NONRESIDUE^19`,
-/// *  `f mod X^3-NONRESIDUE^5`,
-/// *  `f mod X^3-NONRESIDUE^17`,
-/// *  `f mod X^3-NONRESIDUE^11`,
-/// *  `f mod X^3-NONRESIDUE^23`.
+/// * `f mod X^3-NONRESIDUE`,
+/// * `f mod X^3-NONRESIDUE^13`,
+/// * `f mod X^3-NONRESIDUE^7`,
+/// * `f mod X^3-NONRESIDUE^19`,
+/// * `f mod X^3-NONRESIDUE^5`,
+/// * `f mod X^3-NONRESIDUE^17`,
+/// * `f mod X^3-NONRESIDUE^11`,
+/// * `f mod X^3-NONRESIDUE^23`.
 ///
 /// Each of the components is transformed into an element of `Fq3`
-/// by the corresponding unique isomorphism `Fq[X]/(X^3-NONRESIDUE^i) -> Fq[X]/(X^3-NONRESIDUE)`.
+/// by the corresponding unique isomorphism `Fq[X]/(X^3-NONRESIDUE^i) ->
+/// Fq[X]/(X^3-NONRESIDUE)`.
 ///
 /// # Panics
 ///
@@ -88,17 +88,18 @@ pub fn goldilocks_crt_in_place(coefficients: &mut [Fq]) {
 
 /// The inverse CRT.
 /// Takes the CRT representation in the order:
-/// *  `f mod X^3-NONRESIDUE`,
-/// *  `f mod X^3-NONRESIDUE^13`,
-/// *  `f mod X^3-NONRESIDUE^7`,
-/// *  `f mod X^3-NONRESIDUE^19`,
-/// *  `f mod X^3-NONRESIDUE^5`,
-/// *  `f mod X^3-NONRESIDUE^17`,
-/// *  `f mod X^3-NONRESIDUE^11`,
-/// *  `f mod X^3-NONRESIDUE^23`.
+/// * `f mod X^3-NONRESIDUE`,
+/// * `f mod X^3-NONRESIDUE^13`,
+/// * `f mod X^3-NONRESIDUE^7`,
+/// * `f mod X^3-NONRESIDUE^19`,
+/// * `f mod X^3-NONRESIDUE^5`,
+/// * `f mod X^3-NONRESIDUE^17`,
+/// * `f mod X^3-NONRESIDUE^11`,
+/// * `f mod X^3-NONRESIDUE^23`.
 ///
-/// Each of the components is in its isomorphic form in the `Fq[X]/(X^3-NONRESIDUE)`.
-/// Returns the coefficients of the polynomial encoded by this CRT form.
+/// Each of the components is in its isomorphic form in the
+/// `Fq[X]/(X^3-NONRESIDUE)`. Returns the coefficients of the polynomial encoded
+/// by this CRT form.
 ///
 /// # Panics
 ///
@@ -112,7 +113,8 @@ pub fn goldilocks_icrt(evaluations: Vec<Fq3>) -> Vec<Fq> {
 
 /// Same as `goldilocks_icrt` but performs the inverse CRT in place.
 /// Each triple `evaluations[3*i]`, `evaluations[3*i + 1]`, `evaluations[3*i+2]`
-/// has to be an `Fq3` element. In the order described in `goldilocks_icrt`'s docstring.
+/// has to be an `Fq3` element. In the order described in `goldilocks_icrt`'s
+/// docstring.
 ///
 /// # Panics
 ///
@@ -148,11 +150,13 @@ fn serial_goldilock_crt_in_place(coefficients: &mut [Fq]) {
         coefficients[i] = coeff_i + zeta_coeff_d_div_2_plus_i;
         coefficients[i + D / 2] = coeff_i + coeff_d_div_2_plus_i - zeta_coeff_d_div_2_plus_i;
     }
-    // After this step we get f_1 in the first half coefficients and f_2 in the second half.
+    // After this step we get f_1 in the first half coefficients and f_2 in the
+    // second half.
 
     // From here we can perform radix-2 CRT.
 
-    // Compute f_1 mod X^6-\sigma, f_1 mod X^6-\sigma^7, f_2 mod X^6 -\sigma^5, f_2 mod X^6 -\sigma^11
+    // Compute f_1 mod X^6-\sigma, f_1 mod X^6-\sigma^7, f_2 mod X^6 -\sigma^5, f_2
+    // mod X^6 -\sigma^11
     for i in 0..(D / 4) {
         // f_1
         {
@@ -175,8 +179,10 @@ fn serial_goldilock_crt_in_place(coefficients: &mut [Fq]) {
     }
     // After this step we have f_1, f_2, f_3, f_4.
 
-    // Compute f_1 mod X^3-NONRESIDUE, f_1 mod X^3-NONRESIDUE^13, f_2 mod X^3-NONRESIDUE^7, f_2 mod X^3-NONRESIDUE^19
-    // Compute f_3 mod X^3-NONRESIDUE^5, f_3 mod X^3-NONRESIDUE^17, f_4 mod X^3-NONRESIDUE^11, f_4 mod X^3-NONRESIDUE^23
+    // Compute f_1 mod X^3-NONRESIDUE, f_1 mod X^3-NONRESIDUE^13, f_2 mod
+    // X^3-NONRESIDUE^7, f_2 mod X^3-NONRESIDUE^19 Compute f_3 mod
+    // X^3-NONRESIDUE^5, f_3 mod X^3-NONRESIDUE^17, f_4 mod X^3-NONRESIDUE^11, f_4
+    // mod X^3-NONRESIDUE^23
     for i in 0..(D / 8) {
         // f_1
         {
@@ -236,9 +242,11 @@ fn serial_goldilock_icrt_in_place(evaluations: &mut [Fq]) {
 
     dehomogenize_fq3(evaluations);
 
-    // Given f_1 mod X^3-NONRESIDUE, f_1 mod X^3-NONRESIDUE^13, f_2 mod X^3-NONRESIDUE^7, f_2 mod X^3-NONRESIDUE^19,
-    //       f_3 mod X^3-NONRESIDUE^5, f_3 mod X^3-NONRESIDUE^17, f_4 mod X^3-NONRESIDUE^11, f_4 mod X^3-NONRESIDUE^23.
-    // recreate f_1 mod X^6-\sigma, f_1 mod X^6-\sigma^7, f_2 mod X^6 -\sigma^5, f_2 mod X^6 -\sigma^11, where \sigma=NONRESIDUE ^ 2.
+    // Given f_1 mod X^3-NONRESIDUE, f_1 mod X^3-NONRESIDUE^13, f_2 mod
+    // X^3-NONRESIDUE^7, f_2 mod X^3-NONRESIDUE^19,       f_3 mod
+    // X^3-NONRESIDUE^5, f_3 mod X^3-NONRESIDUE^17, f_4 mod X^3-NONRESIDUE^11, f_4
+    // mod X^3-NONRESIDUE^23. recreate f_1 mod X^6-\sigma, f_1 mod X^6-\sigma^7,
+    // f_2 mod X^6 -\sigma^5, f_2 mod X^6 -\sigma^11, where \sigma=NONRESIDUE ^ 2.
     for i in 0..(D / 8) {
         // f_1
         {
@@ -278,7 +286,8 @@ fn serial_goldilock_icrt_in_place(evaluations: &mut [Fq]) {
 
     // Given f_1 mod X^6-\sigma, f_1 mod X^6-\sigma^7, f_2 mod X^6 -\sigma^5,
     //       f_2 mod X^6 -\sigma^11, where \sigma=NONRESIDUE ^ 2,
-    // recreate f_1 mod X^6-\sigma, f_1 mod X^6-\sigma^7, f_2 mod X^6 -\sigma^5, f_2 mod X^6 -\sigma^11, where \sigma=NONRESIDUE ^ 2.
+    // recreate f_1 mod X^6-\sigma, f_1 mod X^6-\sigma^7, f_2 mod X^6 -\sigma^5, f_2
+    // mod X^6 -\sigma^11, where \sigma=NONRESIDUE ^ 2.
     for i in 0..(D / 4) {
         // f_1
         {
@@ -311,8 +320,8 @@ fn serial_goldilock_icrt_in_place(evaluations: &mut [Fq]) {
 
 /// At the end of CRT we get elements in different (although isomorphic)
 /// degree-3 extensions of Fq,
-/// this function converts each triple `c[3 * i]`, `c[3 * i + 1]`, `c[3 * i + 2]`
-/// into coefficients of an element from Fq[X]/(X^3-NONRESIDUE)=Fq3.
+/// this function converts each triple `c[3 * i]`, `c[3 * i + 1]`, `c[3 * i +
+/// 2]` into coefficients of an element from Fq[X]/(X^3-NONRESIDUE)=Fq3.
 #[inline(always)]
 fn homogenize_fq3(c: &mut [Fq]) {
     nonresidue_to_13_to_nonresidue(&mut c[3..6]);

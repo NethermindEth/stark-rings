@@ -118,7 +118,9 @@ CanonicalDeserialize
 
 impl<C: FpConfig<N>, const N: usize> FromRandomBytes<Fp<C, N>> for Fp<C, N> {
     fn byte_size() -> usize {
-        Self::zero().uncompressed_size() + 9 // TODO: check if this is correct; this is inferred from Fp<C, N>::from_random_bytes()
+        Self::zero().uncompressed_size() + 9 // TODO: check if this is correct;
+                                             // this is inferred from Fp<C,
+                                             // N>::from_random_bytes()
     }
 
     fn try_from_random_bytes(bytes: &[u8]) -> Option<Self> {
@@ -128,8 +130,8 @@ impl<C: FpConfig<N>, const N: usize> FromRandomBytes<Fp<C, N>> for Fp<C, N> {
 
 /// Every field is a ring
 impl<F: Field + FromRandomBytes<F>> Ring for F {
-    const ZERO: Self = F::ZERO;
     const ONE: Self = F::ONE;
+    const ZERO: Self = F::ZERO;
 }
 
 /// Ring of integers
@@ -138,12 +140,14 @@ pub trait Zq: Ring {
     fn to_u64(&self) -> Result<u64, ConversionError>;
     /// Center self to around `(p-1)/2`
     ///
-    /// Smaller values are kept the same, while larger values are shifted to `q-self`.
-    /// The absolute value of the signed representation is used as output.
+    /// Smaller values are kept the same, while larger values are shifted to
+    /// `q-self`. The absolute value of the signed representation is used as
+    /// output.
     fn center(&self) -> Self;
     /// Sign according to the center `(p-1)/2`
     ///
-    /// Smaller values are mapped as 1, while larger values are mapped as -1 (`q-1`).
+    /// Smaller values are mapped as 1, while larger values are mapped as -1
+    /// (`q-1`).
     fn sign(&self) -> Self;
 
     fn to_usize(&self) -> Result<usize, ConversionError> {

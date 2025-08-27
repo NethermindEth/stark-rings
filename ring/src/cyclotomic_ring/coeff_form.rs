@@ -80,7 +80,8 @@ impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> CyclotomicPolyRingG
     }
 
     fn poly_mul_in_place(&mut self, rhs: &Self) {
-        // we need a reduce function for SVector to properly do a multiplication in place
+        // we need a reduce function for SVector to properly do a multiplication in
+        // place
         let res = *self * rhs;
         self.0 = res.0;
     }
@@ -190,8 +191,8 @@ impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> CanonicalDeserializ
 impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Ring
     for CyclotomicPolyRingGeneral<C, N, D>
 {
-    const ZERO: Self = Self([<Fp<C::BaseFieldConfig, N> as Field>::ZERO; D]);
     const ONE: Self = Self(array_one());
+    const ZERO: Self = Self([<Fp<C::BaseFieldConfig, N> as Field>::ZERO; D]);
 }
 
 impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> FromRandomBytes<Self>
@@ -735,8 +736,7 @@ mod tests {
     #[test]
     #[allow(clippy::erasing_op)]
     fn test_primitive_ops() {
-        use ark_std::One;
-        use ark_std::Zero;
+        use ark_std::{One, Zero};
         type R = RqPoly;
         assert_eq!(R::one() + 1u32, R::one() + R::one());
         assert_eq!(R::one() * 1u32, R::one());

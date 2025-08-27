@@ -50,17 +50,22 @@ pub trait GadgetRecompose {
 /// # Arguments
 /// * `v`: input element
 /// * `b`: basis for the decomposition, must be even
-/// * `padding_size`: indicates whether the output should be padded with zeros to a specified length `k` if `padding_size` is `Some(k)`, or if it should be padded to the largest decomposition length required for `v` if `padding_size` is `None`
+/// * `padding_size`: indicates whether the output should be padded with zeros
+///   to a specified length `k` if `padding_size` is `Some(k)`, or if it should
+///   be padded to the largest decomposition length required for `v` if
+///   `padding_size` is `None`
 ///
 /// # Output
-/// Returns `d`, the decomposition in basis `b` as a Vec of size `decomp_size`, i.e.,
-/// $\texttt{v}\[i\] = \sum_{j \in \[k\]} \texttt{b}^j \texttt{d}\[j\]$ and $|\texttt{d}\[j\]| \leq \left\lfloor\frac{\texttt{b}}{2}\right\rfloor$.
+/// Returns `d`, the decomposition in basis `b` as a Vec of size `decomp_size`,
+/// i.e., $\texttt{v}\[i\] = \sum_{j \in \[k\]} \texttt{b}^j \texttt{d}\[j\]$
+/// and $|\texttt{d}\[j\]| \leq \left\lfloor\frac{\texttt{b}}{2}\right\rfloor$.
 pub fn decompose_balanced_in_place<Z: ConvertibleRing>(v: &Z, b: u128, out: &mut [Z]) {
     assert!(
         !b.is_zero() && !b.is_one(),
         "cannot decompose in basis 0 or 1"
     );
-    // TODO: not sure if this really necessary, but having b be even allow for more efficient divisions/remainders
+    // TODO: not sure if this really necessary, but having b be even allow for more
+    // efficient divisions/remainders
     assert_eq!(b % 2, 0, "decomposition basis must be even");
 
     let mut curr = Into::<Z::SignedInt>::into(*v);
@@ -113,15 +118,20 @@ where
 
 impl<R: Decompose> DecomposeToVec for &[R] {
     type Element = Vec<R>;
+
     /// Returns the balanced decomposition of a slice as a Vec of Vecs.
     ///
     /// # Arguments
     /// * `v`: input slice, of length `l`
     /// * `b`: basis for the decomposition, must be even
-    /// * `padding_size`: indicates whether the output should be padded with zeros to a specified length `k` if `padding_size` is `Some(k)`, or if it should be padded to the largest decomposition length required for `v` if `padding_size` is `None`
+    /// * `padding_size`: indicates whether the output should be padded with
+    ///   zeros to a specified length `k` if `padding_size` is `Some(k)`, or if
+    ///   it should be padded to the largest decomposition length required for
+    ///   `v` if `padding_size` is `None`
     ///
     /// # Output
-    /// Returns `d` the decomposition in basis `b` as a Vec of size `decomp_size`, with each item being a Vec of length `l`, i.e.,
+    /// Returns `d` the decomposition in basis `b` as a Vec of size
+    /// `decomp_size`, with each item being a Vec of length `l`, i.e.,
     fn decompose_to_vec(&self, b: u128, padding_size: usize) -> Vec<Vec<R>> {
         cfg_iter!(self)
             .map(|v_i| v_i.decompose(b, padding_size))
@@ -131,15 +141,20 @@ impl<R: Decompose> DecomposeToVec for &[R] {
 
 impl<R: Decompose> DecomposeToVec for Vec<R> {
     type Element = Vec<R>;
+
     /// Returns the balanced decomposition of a slice as a Vec of Vecs.
     ///
     /// # Arguments
     /// * `v`: input slice, of length `l`
     /// * `b`: basis for the decomposition, must be even
-    /// * `padding_size`: indicates whether the output should be padded with zeros to a specified length `k` if `padding_size` is `Some(k)`, or if it should be padded to the largest decomposition length required for `v` if `padding_size` is `None`
+    /// * `padding_size`: indicates whether the output should be padded with
+    ///   zeros to a specified length `k` if `padding_size` is `Some(k)`, or if
+    ///   it should be padded to the largest decomposition length required for
+    ///   `v` if `padding_size` is `None`
     ///
     /// # Output
-    /// Returns `d` the decomposition in basis `b` as a Vec of size `decomp_size`, with each item being a Vec of length `l`, i.e.,
+    /// Returns `d` the decomposition in basis `b` as a Vec of size
+    /// `decomp_size`, with each item being a Vec of length `l`, i.e.,
     fn decompose_to_vec(&self, b: u128, padding_size: usize) -> Vec<Vec<R>> {
         self.as_slice().decompose_to_vec(b, padding_size)
     }
@@ -261,15 +276,19 @@ impl<R: Ring> GadgetRecompose for Vec<(R, usize)> {
 impl<R: Decompose> GadgetDecompose for Matrix<R> {
     type Output = Matrix<R>;
 
-    /// Returns the balanced gadget decomposition of a [`Matrix`] of dimensions `n × m` as a matrix of dimensions `n × (k × m)`.
+    /// Returns the balanced gadget decomposition of a [`Matrix`] of dimensions
+    /// `n × m` as a matrix of dimensions `n × (k × m)`.
     ///
     /// # Arguments
     /// * `mat`: input matrix of dimensions `n × m`
     /// * `b`: basis for the decomposition, must be even
-    /// * `padding_size`: indicates whether the decomposition length is the specified `k` if `padding_size` is `Some(k)`, or if `k` is the largest decomposition length required for `mat` if `padding_size` is `None`
+    /// * `padding_size`: indicates whether the decomposition length is the
+    ///   specified `k` if `padding_size` is `Some(k)`, or if `k` is the largest
+    ///   decomposition length required for `mat` if `padding_size` is `None`
     ///
     /// # Output
-    /// Returns `d` the decomposition in basis `b` as a Matrix of dimensions `n × (k × m)`, i.e.,
+    /// Returns `d` the decomposition in basis `b` as a Matrix of dimensions `n
+    /// × (k × m)`, i.e.,
     fn gadget_decompose(&self, b: u128, padding_size: usize) -> Matrix<R> {
         cfg_iter!(self.vals)
             .map(|row| row.as_slice().gadget_decompose(b, padding_size))
@@ -280,6 +299,7 @@ impl<R: Decompose> GadgetDecompose for Matrix<R> {
 
 impl<R: Ring> GadgetRecompose for Matrix<R> {
     type Output = Matrix<R>;
+
     fn gadget_recompose(&self, b: u128, padding_size: usize) -> Matrix<R> {
         cfg_iter!(self.vals)
             .map(|row| row.as_slice().gadget_recompose(b, padding_size))
@@ -291,15 +311,19 @@ impl<R: Ring> GadgetRecompose for Matrix<R> {
 impl<R: Decompose> GadgetDecompose for SparseMatrix<R> {
     type Output = SparseMatrix<R>;
 
-    /// Returns the balanced gadget decomposition of a [`SparseMatrix`] of dimensions `n × m` as a matrix of dimensions `n × (k × m)`.
+    /// Returns the balanced gadget decomposition of a [`SparseMatrix`] of
+    /// dimensions `n × m` as a matrix of dimensions `n × (k × m)`.
     ///
     /// # Arguments
     /// * `mat`: input matrix of dimensions `n × m`
     /// * `b`: basis for the decomposition, must be even
-    /// * `padding_size`: indicates whether the decomposition length is the specified `k` if `padding_size` is `Some(k)`, or if `k` is the largest decomposition length required for `mat` if `padding_size` is `None`
+    /// * `padding_size`: indicates whether the decomposition length is the
+    ///   specified `k` if `padding_size` is `Some(k)`, or if `k` is the largest
+    ///   decomposition length required for `mat` if `padding_size` is `None`
     ///
     /// # Output
-    /// Returns `d` the decomposition in basis `b` as a Matrix of dimensions `n × (k × m)`, i.e.,
+    /// Returns `d` the decomposition in basis `b` as a Matrix of dimensions `n
+    /// × (k × m)`, i.e.,
     fn gadget_decompose(&self, b: u128, padding_size: usize) -> SparseMatrix<R> {
         let coeffs = cfg_iter!(self.coeffs)
             .map(|row| row.as_slice().gadget_decompose(b, padding_size))
@@ -314,6 +338,7 @@ impl<R: Decompose> GadgetDecompose for SparseMatrix<R> {
 
 impl<R: Ring> GadgetRecompose for SparseMatrix<R> {
     type Output = SparseMatrix<R>;
+
     fn gadget_recompose(&self, b: u128, padding_size: usize) -> SparseMatrix<R> {
         let coeffs = cfg_iter!(self.coeffs)
             .map(|row| row.as_slice().gadget_recompose(b, padding_size))
@@ -326,7 +351,10 @@ impl<R: Ring> GadgetRecompose for SparseMatrix<R> {
     }
 }
 
-/// Given a `n*d x n*d` symmetric matrix `mat` and a slice `\[1, b, ..., b^(d-1)\]` `powers_of_basis`, returns the `n x n` symmetric matrix corresponding to $G^T \textt{mat} G$, where $G = I_n \otimes (1, b, ..., b^(\textt{d}-1))$ is the gadget matrix of dimensions `n*d x n`.
+/// Given a `n*d x n*d` symmetric matrix `mat` and a slice `\[1, b, ...,
+/// b^(d-1)\]` `powers_of_basis`, returns the `n x n` symmetric matrix
+/// corresponding to $G^T \textt{mat} G$, where $G = I_n \otimes (1, b, ...,
+/// b^(\textt{d}-1))$ is the gadget matrix of dimensions `n*d x n`.
 pub fn recompose_left_right_symmetric_matrix<F: Clone + Sum + Send + Sync>(
     mat: &SymmetricMatrix<F>,
     powers_of_basis: &[F],
@@ -334,18 +362,18 @@ pub fn recompose_left_right_symmetric_matrix<F: Clone + Sum + Send + Sync>(
 where
     for<'a> &'a F: Mul<&'a F, Output = F>,
 {
-    let (nd, d) = (mat.size(), powers_of_basis.len());
-    assert_eq!(nd % d, 0);
+    let (and, d) = (mat.size(), powers_of_basis.len());
+    assert_eq!(and % d, 0);
 
-    let n = nd / d;
+    let n = and / d;
     cfg_into_iter!(0..n)
         .map(|i| {
             (0..=i)
                 .map(|j| {
-                    (0..nd)
+                    (0..and)
                         .filter(|k| k / d == i)
                         .flat_map(|k| {
-                            (0..nd).filter(|l| l / d == j).map(move |l| {
+                            (0..and).filter(|l| l / d == j).map(move |l| {
                                 &mat[(k, l)] * &(&powers_of_basis[k % d] * &powers_of_basis[l % d])
                             })
                         })
@@ -359,8 +387,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::cyclotomic_ring::models::goldilocks::{Fq, RqPoly};
-    use crate::{PolyRing, SignedRepresentative};
+    use crate::{
+        cyclotomic_ring::models::goldilocks::{Fq, RqPoly},
+        PolyRing, SignedRepresentative,
+    };
     use stark_rings_linalg::ops::Transpose;
 
     use super::*;

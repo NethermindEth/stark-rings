@@ -102,7 +102,8 @@ impl<R: Clone + One> SparseMatrix<R> {
 }
 
 impl<R: Clone + UniformRand + Zero> SparseMatrix<R> {
-    /// Create a random sparse matrix with an approximate `sparsity` ratio of zeroes
+    /// Create a random sparse matrix with an approximate `sparsity` ratio of
+    /// zeroes
     pub fn rand<RND: Rng>(rng: &mut RND, nrows: usize, ncols: usize, sparsity: f64) -> Self {
         let mut coeffs = Vec::with_capacity(nrows);
 

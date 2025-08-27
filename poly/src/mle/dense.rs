@@ -28,7 +28,8 @@ pub struct DenseMultilinearExtension<Rn: Ring> {
 
 /// Representation of a dense multilinear extension (MLE).
 impl<R: Ring> DenseMultilinearExtension<R> {
-    /// Create a [`DenseMultilinearExtension`] from the input slice containing all evaluations.
+    /// Create a [`DenseMultilinearExtension`] from the input slice containing
+    /// all evaluations.
     ///
     /// Only the evaluations until the last non-zero element are kept.
     pub fn from_evaluations_slice(num_vars: usize, evaluations: &[R]) -> Self {
@@ -52,9 +53,11 @@ impl<R: Ring> DenseMultilinearExtension<R> {
         }
     }
 
-    /// Create a [`DenseMultilinearExtension`] from the input vector containing all evaluations.
+    /// Create a [`DenseMultilinearExtension`] from the input vector containing
+    /// all evaluations.
     ///
-    /// The input vector is then truncated and shrunk to the last non-zero element.
+    /// The input vector is then truncated and shrunk to the last non-zero
+    /// element.
     pub fn from_evaluations_vec(num_vars: usize, evaluations: Vec<R>) -> Self {
         let elen = 1 << num_vars;
 
@@ -69,7 +72,8 @@ impl<R: Ring> DenseMultilinearExtension<R> {
         dmle
     }
 
-    /// Create a [`DenseMultilinearExtension`] from the input vector containing all evaluations.
+    /// Create a [`DenseMultilinearExtension`] from the input vector containing
+    /// all evaluations.
     ///
     /// The input vector is then resized to 2^num_vars.
     pub fn from_evaluations_vec_padded(num_vars: usize, mut evaluations: Vec<R>) -> Self {
@@ -84,7 +88,8 @@ impl<R: Ring> DenseMultilinearExtension<R> {
         }
     }
 
-    /// Truncates and shrinks the evaluations vector to the last non-zero element.
+    /// Truncates and shrinks the evaluations vector to the last non-zero
+    /// element.
     pub fn truncate_lnze(&mut self) {
         // Length till last non-zero element
         let nzl = self
@@ -107,7 +112,8 @@ impl<R: Ring> DenseMultilinearExtension<R> {
         }
     }
 
-    /// Returns the dense MLE from the given matrix, without modifying the original matrix.
+    /// Returns the dense MLE from the given matrix, without modifying the
+    /// original matrix.
     pub fn from_matrix(matrix: &SparseMatrix<R>) -> Self {
         let n_vars: usize = (log2(matrix.nrows()) + log2(matrix.ncols())) as usize; // n_vars = s + s'
 

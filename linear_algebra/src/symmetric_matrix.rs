@@ -42,6 +42,7 @@ impl<F: Clone> SymmetricMatrix<F> {
             &self.0[j][i]
         }
     }
+
     #[inline]
     pub fn at_mut(&mut self, i: usize, j: usize) -> &mut F {
         debug_assert!(i < self.0.len() && j < self.0.len());

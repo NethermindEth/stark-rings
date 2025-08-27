@@ -1,6 +1,5 @@
 //!
 //! A CRT implementation for the ring Fq[X]/(X^72 - X^36 + 1).
-//!
 use ark_ff::BigInt;
 use ark_std::vec::*;
 
@@ -43,17 +42,18 @@ const ROOTS_OF_UNITY_24: &[Fq] = &[
 
 /// Given `coefficients` of a polynoimial `f mod X^72 - X^36 + 1`
 /// returns its CRT:
-/// *  `f mod X^9-NONRESIDUE`,
-/// *  `f mod X^9-NONRESIDUE^13`,
-/// *  `f mod X^9-NONRESIDUE^7`,
-/// *  `f mod X^9-NONRESIDUE^19`,
-/// *  `f mod X^9-NONRESIDUE^5`,
-/// *  `f mod X^9-NONRESIDUE^17`,
-/// *  `f mod X^9-NONRESIDUE^11`,
-/// *  `f mod X^9-NONRESIDUE^23`.
+/// * `f mod X^9-NONRESIDUE`,
+/// * `f mod X^9-NONRESIDUE^13`,
+/// * `f mod X^9-NONRESIDUE^7`,
+/// * `f mod X^9-NONRESIDUE^19`,
+/// * `f mod X^9-NONRESIDUE^5`,
+/// * `f mod X^9-NONRESIDUE^17`,
+/// * `f mod X^9-NONRESIDUE^11`,
+/// * `f mod X^9-NONRESIDUE^23`.
 ///
 /// Each of the components is transformed into an element of `Fq9`
-/// by the corresponding unique isomorphism `Fq[X]/(X^9-NONRESIDUE^i) -> Fq[X]/(X^9-NONRESIDUE)`.
+/// by the corresponding unique isomorphism `Fq[X]/(X^9-NONRESIDUE^i) ->
+/// Fq[X]/(X^9-NONRESIDUE)`.
 ///
 /// # Panics
 ///
@@ -82,17 +82,18 @@ pub fn babybear_crt_in_place(coefficients: &mut [Fq]) {
 
 /// The inverse CRT.
 /// Takes the CRT representation in the order:
-/// *  `f mod X^9-NONRESIDUE`,
-/// *  `f mod X^9-NONRESIDUE^13`,
-/// *  `f mod X^9-NONRESIDUE^7`,
-/// *  `f mod X^9-NONRESIDUE^19`,
-/// *  `f mod X^9-NONRESIDUE^5`,
-/// *  `f mod X^9-NONRESIDUE^17`,
-/// *  `f mod X^9-NONRESIDUE^11`,
-/// *  `f mod X^9-NONRESIDUE^23`.
+/// * `f mod X^9-NONRESIDUE`,
+/// * `f mod X^9-NONRESIDUE^13`,
+/// * `f mod X^9-NONRESIDUE^7`,
+/// * `f mod X^9-NONRESIDUE^19`,
+/// * `f mod X^9-NONRESIDUE^5`,
+/// * `f mod X^9-NONRESIDUE^17`,
+/// * `f mod X^9-NONRESIDUE^11`,
+/// * `f mod X^9-NONRESIDUE^23`.
 ///
-/// Each of the components is in its isomorphic form in the `Fq[X]/(X^9-NONRESIDUE)`.
-/// Returns the coefficients of the polynomial encoded by this CRT form.
+/// Each of the components is in its isomorphic form in the
+/// `Fq[X]/(X^9-NONRESIDUE)`. Returns the coefficients of the polynomial encoded
+/// by this CRT form.
 ///
 /// # Panics
 ///
@@ -106,7 +107,8 @@ pub fn babybear_icrt(evaluations: Vec<Fq9>) -> Vec<Fq> {
 
 /// Same as `babybear_icrt` but performs the inverse CRT in place.
 /// Each nonuple from `evaluations[9*i]` to `evaluations[9*i + 8]`,
-/// has to be an `Fq9` element. In the order described in `babybear_icrt`'s docstring.
+/// has to be an `Fq9` element. In the order described in `babybear_icrt`'s
+/// docstring.
 ///
 /// # Panics
 ///
@@ -156,11 +158,13 @@ fn serial_babybear_crt_in_place(coefficients: &mut [Fq]) {
         coefficients[i] = coeff_i + zeta_coeff_d_div_2_plus_i;
         coefficients[i + D / 2] = coeff_i + coeff_d_div_2_plus_i - zeta_coeff_d_div_2_plus_i;
     }
-    // After this step we get f_1 in the first half coefficients and f_2 in the second half.
+    // After this step we get f_1 in the first half coefficients and f_2 in the
+    // second half.
 
     // From here we can perform radix-2 CRT.
 
-    // Compute f_1 mod X^18-\sigma, f_1 mod X^18-\sigma^7, f_2 mod X^18 -\sigma^5, f_2 mod X^18 -\sigma^11
+    // Compute f_1 mod X^18-\sigma, f_1 mod X^18-\sigma^7, f_2 mod X^18 -\sigma^5,
+    // f_2 mod X^18 -\sigma^11
     for i in 0..(D / 4) {
         // f_1
         {
@@ -183,8 +187,10 @@ fn serial_babybear_crt_in_place(coefficients: &mut [Fq]) {
     }
     // After this step we have f_1, f_2, f_3, f_4.
 
-    // Compute f_1 mod X^9-NONRESIDUE, f_1 mod X^9-NONRESIDUE^13, f_2 mod X^9-NONRESIDUE^7, f_2 mod X^9-NONRESIDUE^19
-    // Compute f_3 mod X^9-NONRESIDUE^5, f_3 mod X^9-NONRESIDUE^17, f_4 mod X^9-NONRESIDUE^11, f_4 mod X^9-NONRESIDUE^23
+    // Compute f_1 mod X^9-NONRESIDUE, f_1 mod X^9-NONRESIDUE^13, f_2 mod
+    // X^9-NONRESIDUE^7, f_2 mod X^9-NONRESIDUE^19 Compute f_3 mod
+    // X^9-NONRESIDUE^5, f_3 mod X^9-NONRESIDUE^17, f_4 mod X^9-NONRESIDUE^11, f_4
+    // mod X^9-NONRESIDUE^23
     for i in 0..(D / 8) {
         // f_1
         {
@@ -234,9 +240,12 @@ fn serial_babybear_icrt_in_place(evaluations: &mut [Fq]) {
 
     dehomogenize_fq9(evaluations);
 
-    // Given f_1 mod X^9-NONRESIDUE, f_1 mod X^9-NONRESIDUE^13, f_2 mod X^9-NONRESIDUE^7, f_2 mod X^9-NONRESIDUE^19,
-    //       f_3 mod X^9-NONRESIDUE^5, f_3 mod X^9-NONRESIDUE^17, f_4 mod X^9-NONRESIDUE^11, f_4 mod X^9-NONRESIDUE^23.
-    // recreate f_1 mod X^18-\sigma, f_1 mod X^18-\sigma^7, f_2 mod X^18 -\sigma^5, f_2 mod X^18 -\sigma^11, where \sigma=NONRESIDUE ^ 2.
+    // Given f_1 mod X^9-NONRESIDUE, f_1 mod X^9-NONRESIDUE^13, f_2 mod
+    // X^9-NONRESIDUE^7, f_2 mod X^9-NONRESIDUE^19,       f_3 mod
+    // X^9-NONRESIDUE^5, f_3 mod X^9-NONRESIDUE^17, f_4 mod X^9-NONRESIDUE^11, f_4
+    // mod X^9-NONRESIDUE^23. recreate f_1 mod X^18-\sigma, f_1 mod
+    // X^18-\sigma^7, f_2 mod X^18 -\sigma^5, f_2 mod X^18 -\sigma^11, where
+    // \sigma=NONRESIDUE ^ 2.
     for i in 0..(D / 8) {
         // f_1
         {
@@ -276,7 +285,8 @@ fn serial_babybear_icrt_in_place(evaluations: &mut [Fq]) {
 
     // Given f_1 mod X^18-\sigma, f_1 mod X^18-\sigma^7, f_2 mod X^18 -\sigma^5,
     //       f_2 mod X^18 -\sigma^11, where \sigma=NONRESIDUE ^ 2,
-    // recreate f_1 mod X^18-\sigma, f_1 mod X^18-\sigma^7, f_2 mod X^18 -\sigma^5, f_2 mod X^18 -\sigma^11, where \sigma=NONRESIDUE ^ 2.
+    // recreate f_1 mod X^18-\sigma, f_1 mod X^18-\sigma^7, f_2 mod X^18 -\sigma^5,
+    // f_2 mod X^18 -\sigma^11, where \sigma=NONRESIDUE ^ 2.
     for i in 0..(D / 4) {
         // f_1
         {

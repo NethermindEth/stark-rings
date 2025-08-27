@@ -35,19 +35,17 @@ pub struct BabyBear3ExtConfig;
 impl Fp3Config for BabyBear3ExtConfig {
     type Fp = Fq;
 
+    const FROBENIUS_COEFF_FP3_C1: &'static [Self::Fp] = &[];
+    const FROBENIUS_COEFF_FP3_C2: &'static [Self::Fp] = &[];
     const NONRESIDUE: Self::Fp = MontFp!("503591070");
-
-    const TWO_ADICITY: u32 = 27;
-
-    // Parameter below are placeholders and not needed
-    const TRACE_MINUS_ONE_DIV_TWO: &'static [u64] = &[];
     const QUADRATIC_NONRESIDUE_TO_T: Fp3<Self> = Fp3::new(
         <Fq as Field>::ZERO,
         <Fq as Field>::ZERO,
         <Fq as Field>::ZERO,
     );
-    const FROBENIUS_COEFF_FP3_C1: &'static [Self::Fp] = &[];
-    const FROBENIUS_COEFF_FP3_C2: &'static [Self::Fp] = &[];
+    // Parameter below are placeholders and not needed
+    const TRACE_MINUS_ONE_DIV_TWO: &'static [u64] = &[];
+    const TWO_ADICITY: u32 = 27;
 }
 
 pub struct BabyBear9ExtConfig;
@@ -55,16 +53,14 @@ pub struct BabyBear9ExtConfig;
 impl Fp9Config for BabyBear9ExtConfig {
     type Fp3Config = BabyBear3ExtConfig;
 
+    const FROBENIUS_COEFF_FP9_C1: &'static [<Self::Fp3Config as Fp3Config>::Fp] = &[];
+    const FROBENIUS_COEFF_FP9_C2: &'static [<Self::Fp3Config as Fp3Config>::Fp] = &[];
     const NONRESIDUE: Fp3<Self::Fp3Config> = Fp3::new(
         <<BabyBear3ExtConfig as Fp3Config>::Fp as Field>::ZERO,
         <<BabyBear3ExtConfig as Fp3Config>::Fp as Field>::ONE,
         <<BabyBear3ExtConfig as Fp3Config>::Fp as Field>::ZERO,
     );
-
     const SQRT_PRECOMP: Option<ark_ff::SqrtPrecomputation<fq9::Fp9<Self>>> = None;
-
-    const FROBENIUS_COEFF_FP9_C1: &'static [<Self::Fp3Config as Fp3Config>::Fp] = &[];
-    const FROBENIUS_COEFF_FP9_C2: &'static [<Self::Fp3Config as Fp3Config>::Fp] = &[];
 }
 
 pub type Fq9 = Fp9<BabyBear9ExtConfig>;
@@ -83,8 +79,8 @@ impl FromRandomBytes<Fq9> for Fq9 {
 pub struct BabyBearRingConfig;
 
 impl CyclotomicConfig<1> for BabyBearRingConfig {
-    type BaseFieldConfig = MontBackend<FqConfig, 1>;
     type BaseCRTField = Fq9;
+    type BaseFieldConfig = MontBackend<FqConfig, 1>;
 
     const CRT_FIELD_EXTENSION_DEGREE: usize = 9;
 
@@ -255,7 +251,8 @@ mod tests {
         let ntt_mul = ntt_form_1 * ntt_form_2;
         let coeffs_mul = coeff_1 * coeff_2;
 
-        // ntt_mul.coeffs() performs INTT while coeffs_mul.coeffs() just returns the coefficients
+        // ntt_mul.coeffs() performs INTT while coeffs_mul.coeffs() just returns the
+        // coefficients
         assert_eq!(ntt_mul.icrt(), coeffs_mul);
     }
 

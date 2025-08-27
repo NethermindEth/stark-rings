@@ -5,11 +5,14 @@ edition.workspace = true
 license.workspace = true
 version.workspace = true
 
+[features]
+default = ["std"]
+std = ["stark-rings-linalg/std"]
+parallel = ["std", "rayon"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-stark-rings-linalg = { workspace = true }
-stark-rings = { workspace = true }
 ark-ff = { workspace = true }
 ark-serialize = { workspace = true }
 ark-std = { workspace = true }
@@ -17,9 +20,6 @@ displaydoc = { workspace = true }
 hashbrown = "0.15"
 rand = { workspace = true }
 rayon = { version = "1.10", optional = true }
+stark-rings = { workspace = true }
+stark-rings-linalg = { workspace = true }
 thiserror = { version = "2", default-features = false }
-
-[features]
-default = [ "std" ]
-std = [ "stark-rings-linalg/std" ]
-parallel = [ "std", "rayon" ]

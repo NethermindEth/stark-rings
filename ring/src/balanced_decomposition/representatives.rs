@@ -89,6 +89,7 @@ impl<T: Signed> Signed for SignedRepresentative<T> {
 
 impl<T: Neg<Output = T>> Neg for SignedRepresentative<T> {
     type Output = Self;
+
     fn neg(self) -> Self::Output {
         SignedRepresentative(self.0.neg())
     }
@@ -301,6 +302,7 @@ impl<T: Integer> Integer for UnsignedRepresentative<T> {
 
 impl<T: Add<i128, Output = T>> Add<i128> for SignedRepresentative<T> {
     type Output = Self;
+
     fn add(self, value: i128) -> Self {
         Self(self.0 + value)
     }
@@ -308,6 +310,7 @@ impl<T: Add<i128, Output = T>> Add<i128> for SignedRepresentative<T> {
 
 impl<T: Sub<i128, Output = T>> Sub<i128> for SignedRepresentative<T> {
     type Output = Self;
+
     fn sub(self, value: i128) -> Self {
         Self(self.0 - value)
     }
@@ -315,6 +318,7 @@ impl<T: Sub<i128, Output = T>> Sub<i128> for SignedRepresentative<T> {
 
 impl<T: Div<i128, Output = T>> Div<i128> for SignedRepresentative<T> {
     type Output = Self;
+
     fn div(self, value: i128) -> Self {
         Self(self.0 / value)
     }

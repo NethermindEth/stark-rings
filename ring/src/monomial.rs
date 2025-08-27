@@ -77,8 +77,8 @@ where
 
 /// Monomial range-check
 ///
-/// Calculates $\text{ct}(b \psi) \stackrel{?}{=} a$, where $b = \text{EXP(a)} = \text{sign}(a)X^a$.
-/// If the equality holds, then $a \in (-d', d')$.
+/// Calculates $\text{ct}(b \psi) \stackrel{?}{=} a$, where $b = \text{EXP(a)} =
+/// \text{sign}(a)X^a$. If the equality holds, then $a \in (-d', d')$.
 pub fn psi_range_check<R: CoeffRing>(a: R::BaseRing) -> Result<(), MonomialError<R>>
 where
     R::BaseRing: Zq,

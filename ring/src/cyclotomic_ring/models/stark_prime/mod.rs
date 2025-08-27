@@ -32,9 +32,8 @@ pub type RqPoly = CyclotomicPolyRingGeneral<StarkRingConfig, 4, { ntt::D }>;
 pub struct StarkRingConfig;
 
 impl CyclotomicConfig<4> for StarkRingConfig {
-    type BaseFieldConfig = MontBackend<FqConfig, 4>;
-
     type BaseCRTField = Fq;
+    type BaseFieldConfig = MontBackend<FqConfig, 4>;
 
     const CRT_FIELD_EXTENSION_DEGREE: usize = 1;
 
@@ -172,7 +171,8 @@ mod test {
         let ntt_mul = ntt_form_1 * ntt_form_2;
         let coeffs_mul = coeff_1 * coeff_2;
 
-        // ntt_mul.coeffs() performs INTT while coeffs_mul.coeffs() just returns the coefficients
+        // ntt_mul.coeffs() performs INTT while coeffs_mul.coeffs() just returns the
+        // coefficients
         assert_eq!(ntt_mul.icrt(), coeffs_mul);
     }
 
