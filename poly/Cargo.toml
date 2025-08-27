@@ -19,7 +19,7 @@ ark-std = { workspace = true }
 displaydoc = { workspace = true }
 hashbrown = "0.15"
 rand = { workspace = true }
-rayon = { version = "1.10", optional = true }
+rayon = { workspace = true, optional = true }
 stark-rings = { workspace = true }
 stark-rings-linalg = { workspace = true }
-thiserror = { version = "2", default-features = false }
+thiserror = { workspace = true }

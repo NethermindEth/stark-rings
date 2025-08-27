@@ -14,20 +14,20 @@ ark-ff = "0.4"
 ark-poly = "0.4"
 ark-serialize = { version = "0.4", features = ["derive"] }
 ark-std = { version = "0.4", default-features = false }
-bincode = "1.3"
-bitter = "0.6"
 delegate = "0.13"
-delegate-attr = "0.3"
 derive_more = "0.99"
 displaydoc = { version = "0.2", default-features = false }
+hashbrown = "0.15"
 num-bigint = { version = "0.4", default-features = false }
 num-integer = { version = "0.1", default-features = false }
 rand = { version = "0.8", default-features = false }
+rayon = "1.10"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_with = { version = "3.7", default-features = false }
 stark-rings = { path = "./ring", default-features = false }
 stark-rings-linalg = { path = "./linear_algebra", default-features = false }
 stark-rings-poly = { path = "./poly", default-features = false }
+syn = "2.0.87"
 thiserror = { version = "2", default-features = false }
 zeroize = "1.7"
 
