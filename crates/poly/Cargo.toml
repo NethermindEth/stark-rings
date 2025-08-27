@@ -1,0 +1,25 @@
+[package]
+name = "stark-rings-poly"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[features]
+default = ["std"]
+std = ["stark-rings-linalg/std"]
+parallel = ["std", "rayon"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ark-ff = { workspace = true }
+ark-serialize = { workspace = true }
+ark-std = { workspace = true }
+displaydoc = { workspace = true }
+hashbrown = "0.15"
+rand = { workspace = true }
+rayon = { workspace = true, optional = true }
+stark-rings = { workspace = true }
+stark-rings-linalg = { workspace = true }
+thiserror = { workspace = true }
