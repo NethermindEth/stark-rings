@@ -27,4 +27,4 @@ But if you have not received an answer after a couple of days, please follow up 
 ## Fixes
 
 We will release fixes for verified security vulnerabilities.
-We expect to publish vulnerabilities using GitHub [security advisories](https://github.com/NethermindEth/frida-hotstuff/security/advisories).
+We expect to publish vulnerabilities using GitHub [security advisories](https://github.com/NethermindEth/stark-rings/security/advisories).
