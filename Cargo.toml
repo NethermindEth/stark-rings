@@ -1,5 +1,5 @@
 [workspace]
-members = ["linear_algebra", "poly", "ring"]
+members = ["crates/linear_algebra", "crates/poly", "crates/ring"]
 resolver = "2"
 publish = false
 
@@ -24,9 +24,9 @@ rand = { version = "0.8", default-features = false }
 rayon = "1.10"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_with = { version = "3.7", default-features = false }
-stark-rings = { path = "./ring", default-features = false }
-stark-rings-linalg = { path = "./linear_algebra", default-features = false }
-stark-rings-poly = { path = "./poly", default-features = false }
+stark-rings = { path = "./crates/ring", default-features = false }
+stark-rings-linalg = { path = "./crates/linear_algebra", default-features = false }
+stark-rings-poly = { path = "./crates/poly", default-features = false }
 syn = "2.0.87"
 thiserror = { version = "2", default-features = false }
 zeroize = "1.7"
