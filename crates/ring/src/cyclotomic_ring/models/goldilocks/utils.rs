@@ -1,10 +1,11 @@
 use super::{Fq, Fq3};
+use crate::utils::into_raw_parts;
 use ark_std::vec::*;
 
 pub(super) fn fq_vec_to_fq3_vec(mut vec: Vec<Fq>) -> Vec<Fq3> {
     vec.shrink_to_fit();
 
-    let (ptr, len, cap) = vec.into_raw_parts();
+    let (ptr, len, cap) = into_raw_parts(vec);
 
     assert_eq!(len, cap);
 
@@ -14,7 +15,7 @@ pub(super) fn fq_vec_to_fq3_vec(mut vec: Vec<Fq>) -> Vec<Fq3> {
 pub(super) fn fq3_vec_to_fq_vec(mut vec: Vec<Fq3>) -> Vec<Fq> {
     vec.shrink_to_fit();
 
-    let (ptr, len, cap) = vec.into_raw_parts();
+    let (ptr, len, cap) = into_raw_parts(vec);
 
     assert_eq!(len, cap);
 

@@ -1,3 +1,4 @@
+use crate::utils::into_raw_parts;
 use ark_std::{ptr, slice, vec::*};
 
 /// Enables Chinese Remainder Transform (CRT) conversion from coefficient
@@ -7,7 +8,7 @@ pub trait CRT: Sized {
 
     fn crt(self) -> Self::CRTForm;
     fn elementwise_crt(vec: Vec<Self>) -> Vec<Self::CRTForm> {
-        let (ptr, len, cap) = vec.into_raw_parts();
+        let (ptr, len, cap) = into_raw_parts(vec);
 
         let slice = unsafe { slice::from_raw_parts_mut(ptr, len) };
 
@@ -31,7 +32,7 @@ pub trait ICRT: Sized {
 
     fn icrt(self) -> Self::ICRTForm;
     fn elementwise_icrt(vec: Vec<Self>) -> Vec<Self::ICRTForm> {
-        let (ptr, len, cap) = vec.into_raw_parts();
+        let (ptr, len, cap) = into_raw_parts(vec);
 
         let slice = unsafe { slice::from_raw_parts_mut(ptr, len) };
 

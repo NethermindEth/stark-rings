@@ -1,6 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(non_snake_case)]
-#![feature(vec_into_raw_parts)]
 // Exports
 pub use balanced_decomposition::{
     representatives::{SignedRepresentative, UnsignedRepresentative},
@@ -20,6 +19,7 @@ mod error;
 mod monomial;
 mod poly_ring;
 mod ring;
+pub(crate) mod utils;
 
 #[macro_use]
 extern crate ark_std;
