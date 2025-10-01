@@ -2,6 +2,7 @@ use ark_ff::{CubicExtConfig, CubicExtField, Fp3, Fp3Config, SqrtPrecomputation};
 use ark_std::{marker::PhantomData, vec::*};
 
 use super::{BabyBear3ExtConfig, Fq, Fq9};
+use crate::utils::into_raw_parts;
 
 pub trait Fp9Config: 'static + Send + Sync + Sized {
     type Fp3Config: Fp3Config;
@@ -60,7 +61,7 @@ pub type Fp9<P> = CubicExtField<Fp9ConfigWrapper<P>>;
 pub(super) fn fq_vec_to_fq9_vec(mut vec: Vec<Fq>) -> Vec<Fq9> {
     vec.shrink_to_fit();
 
-    let (ptr, len, cap) = vec.into_raw_parts();
+    let (ptr, len, cap) = into_raw_parts(vec);
 
     assert_eq!(len, cap);
 
@@ -70,7 +71,7 @@ pub(super) fn fq_vec_to_fq9_vec(mut vec: Vec<Fq>) -> Vec<Fq9> {
 pub(super) fn fq9_vec_to_fq_vec(mut vec: Vec<Fq9>) -> Vec<Fq> {
     vec.shrink_to_fit();
 
-    let (ptr, len, cap) = vec.into_raw_parts();
+    let (ptr, len, cap) = into_raw_parts(vec);
 
     assert_eq!(len, cap);
 

@@ -2,7 +2,7 @@
 //! This module introduces a function `flatten_to_coeffs` on vectors of
 //! cyclotomic ring elements to cheaply cast them into vectors of corresponding
 //! base field coefficients and its "inverse" `promote_from_coeffs`.
-use crate::PolyRing;
+use crate::{utils::into_raw_parts, PolyRing};
 use ark_std::vec::*;
 
 use super::{CyclotomicConfig, CyclotomicPolyRingGeneral, CyclotomicPolyRingNTTGeneral};
@@ -11,7 +11,7 @@ pub trait Flatten: PolyRing {
     fn flatten_to_coeffs(vec: Vec<Self>) -> Vec<Self::BaseRing> {
         let dimension = Self::dimension();
 
-        let (ptr, len, cap) = vec.into_raw_parts();
+        let (ptr, len, cap) = into_raw_parts(vec);
 
         unsafe { Vec::from_raw_parts(ptr as *mut Self::BaseRing, len * dimension, cap * dimension) }
     }
@@ -27,7 +27,7 @@ pub trait Flatten: PolyRing {
             vec.shrink_to_fit();
         }
 
-        let (ptr, len, cap) = vec.into_raw_parts();
+        let (ptr, len, cap) = into_raw_parts(vec);
 
         Some(unsafe { Vec::from_raw_parts(ptr as *mut Self, len / dimension, cap / dimension) })
     }
