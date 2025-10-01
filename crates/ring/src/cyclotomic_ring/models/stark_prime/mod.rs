@@ -67,7 +67,6 @@ impl CyclotomicConfig<4> for StarkRingConfig {
     }
 }
 
-impl OverField for RqPoly {}
 impl OverField for RqNTT {}
 
 impl Mul<Fq> for RqNTT {

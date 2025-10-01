@@ -1,7 +1,13 @@
 use super::{CoeffRing, PolyRing, Zq};
 use crate::{ConversionError, Ring};
-use ark_std::One;
+use ark_std::{One, Zero};
 use thiserror::Error;
+
+#[derive(Clone)]
+pub struct Monomial<R: PolyRing> {
+    value: R::BaseRing,
+    index: usize,
+}
 
 #[derive(Error, Debug)]
 pub enum MonomialError<R: PolyRing> {
@@ -9,6 +15,41 @@ pub enum MonomialError<R: PolyRing> {
     Conversion(#[from] ConversionError),
     #[error("Range check failed: a {0} != ct {1}")]
     RangeCheck(R::BaseRing, R::BaseRing),
+}
+
+impl<R: PolyRing> Monomial<R> {
+    pub fn new(value: R::BaseRing, index: usize) -> Self {
+        Monomial { value, index }
+    }
+
+    /// Create polynomial ring from a monomial
+    pub fn to_poly(&self) -> R {
+        let mut r = R::ZERO;
+        r.coeffs_mut()[self.index] = self.value;
+        r
+    }
+
+    /// Create monomial from a polynomial ring
+    ///
+    /// Uses first non-zero value.
+    pub fn from_poly(r: &R) -> Self {
+        let (index, value) = r
+            .coeffs()
+            .iter()
+            .enumerate()
+            .find(|(_, z)| !z.is_zero())
+            .map(|(i, z)| (i, *z))
+            .unwrap_or((0, R::BaseRing::ZERO));
+        Self::new(value, index)
+    }
+
+    pub fn value(&self) -> &R::BaseRing {
+        &self.value
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
+    }
 }
 
 /// Single-term polynomial $m = X^i \in R_q$
@@ -61,6 +102,18 @@ where
         Ok(unit_monomial(centered))
     } else {
         Ok(unit_monomial(R::dimension() - centered))
+    }
+}
+
+pub fn exp_i<R: CoeffRing>(a: R::BaseRing) -> Result<Monomial<R>, MonomialError<R>>
+where
+    R::BaseRing: Zq,
+{
+    let centered = a.center().to_usize()?;
+    if a.sign() + R::BaseRing::ONE > R::BaseRing::ZERO {
+        Ok(Monomial::new(R::BaseRing::ONE, centered))
+    } else {
+        Ok(Monomial::new(R::BaseRing::ONE, R::dimension() - centered))
     }
 }
 

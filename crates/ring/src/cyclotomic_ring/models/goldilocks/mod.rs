@@ -118,7 +118,6 @@ impl CyclotomicConfig<1> for GoldilocksRingConfig {
     }
 }
 
-impl OverField for RqPoly {}
 impl OverField for RqNTT {}
 
 impl Mul<Fq3> for RqNTT {

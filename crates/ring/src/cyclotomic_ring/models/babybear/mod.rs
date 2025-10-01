@@ -130,7 +130,6 @@ impl CyclotomicConfig<1> for BabyBearRingConfig {
     }
 }
 
-impl OverField for RqPoly {}
 impl OverField for RqNTT {}
 
 impl Mul<Fq9> for RqNTT {

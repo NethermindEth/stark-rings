@@ -397,6 +397,17 @@ impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Mul<Fp<C::BaseField
     }
 }
 
+impl<'a, C: CyclotomicConfig<N>, const N: usize, const D: usize> Mul<&'a Fp<C::BaseFieldConfig, N>>
+    for CyclotomicPolyRingGeneral<C, N, D>
+{
+    type Output = Self;
+
+    fn mul(mut self, rhs: &'a Fp<C::BaseFieldConfig, N>) -> Self::Output {
+        self.0.iter_mut().for_each(|z| { *z *= rhs; });
+        self
+    }
+}
+
 impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> MulUnchecked<Fp<C::BaseFieldConfig, N>>
     for CyclotomicPolyRingGeneral<C, N, D>
 {

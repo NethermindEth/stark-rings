@@ -144,8 +144,14 @@ impl<R: CanonicalDeserialize> CanonicalDeserialize for Matrix<R> {
     }
 }
 
-impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Send + Sync + Sum> Matrix<R> {
-    pub fn checked_mul_mat(&self, m: &Matrix<R>) -> Option<Matrix<R>> {
+impl<R> Matrix<R> 
+where
+    R: Clone + Sum,
+{
+    pub fn checked_mul_mat<S>(&self, m: &Matrix<S>) -> Option<Matrix<R>>
+    where
+        R: for<'a> Mul<&'a S, Output = R>,
+    {
         if self.ncols != m.nrows {
             return None;
         }
@@ -165,7 +171,10 @@ impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Send + Sync + Sum> Matrix<R> {
         Some(vals.into())
     }
 
-    pub fn checked_mul_vec(&self, v: &[R]) -> Option<Vec<R>> {
+    pub fn checked_mul_vec<S>(&self, v: &[S]) -> Option<Vec<R>>
+    where
+        R: for<'a> Mul<&'a S, Output = R>,
+    {
         if self.ncols != v.len() {
             return None;
         }
@@ -177,12 +186,18 @@ impl<R: Clone + for<'a> Mul<&'a R, Output = R> + Send + Sync + Sum> Matrix<R> {
         )
     }
 
-    pub fn try_mul_vec(&self, v: &[R]) -> Result<Vec<R>, AlgebraError> {
+    pub fn try_mul_vec<S>(&self, v: &[S]) -> Result<Vec<R>, AlgebraError>
+    where
+        R: for<'a> Mul<&'a S, Output = R>,
+    {
         self.checked_mul_vec(v)
             .ok_or(AlgebraError::DifferentLengths(self.ncols, v.len()))
     }
 
-    pub fn try_mul_mat(&self, m: &Matrix<R>) -> Result<Matrix<R>, AlgebraError> {
+    pub fn try_mul_mat<S>(&self, m: &Matrix<S>) -> Result<Matrix<R>, AlgebraError>
+    where
+        R: for<'a> Mul<&'a S, Output = R>,
+    {
         self.checked_mul_mat(m)
             .ok_or(AlgebraError::DifferentLengths(self.ncols, m.nrows))
     }

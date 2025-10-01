@@ -8,7 +8,7 @@ use crate::{
     impl_crt_icrt_for_a_ring,
     poly_ring::PolyRing,
     traits::FromRandomBytes,
-    Cyclotomic, OverField,
+    CoeffRing, Cyclotomic, Monomial, OverField,
 };
 
 mod ntt;
@@ -105,8 +105,8 @@ impl CyclotomicConfig<1> for FrogRingConfig {
     }
 }
 
-impl OverField for RqPoly {}
 impl OverField for RqNTT {}
+impl CoeffRing for RqPoly {}
 
 impl Mul<Fq4> for RqNTT {
     type Output = Self;
@@ -131,6 +131,44 @@ impl Cyclotomic for RqPoly {
         }
     }
 }
+
+impl<'a> Mul<&'a Monomial<Self>> 
+    for RqPoly {
+    type Output = Self;
+
+    fn mul(mut self, m: &'a Monomial<Self>) ->Self {
+    use crate::Ring;
+    use ark_std::{One, Zero};
+        let coeff = m.value();
+        let shift = m.index();
+
+        // Monomial coeff is either 0 or 1, so no need to do true multiplication
+        if coeff.is_zero() {
+            return Self::ZERO;
+        }
+
+        if shift == 0 && coeff.is_one() {
+            return self;
+        }
+
+        if shift > 0 {
+            let mut new_coeffs = [<Self as PolyRing>::BaseRing::zero(); ntt::D];
+            for (i, c) in self.0.iter().enumerate() {
+
+                let j = i + shift;
+                if j < ntt::D {
+                    new_coeffs[j] = *c;
+                } else {
+                    new_coeffs[j - ntt::D] -= c;
+                }
+            }
+            self.0.copy_from_slice(&new_coeffs);
+        }
+
+        self
+    }
+}
+
 
 impl_crt_icrt_for_a_ring!(RqNTT, RqPoly, FrogRingConfig);
 
