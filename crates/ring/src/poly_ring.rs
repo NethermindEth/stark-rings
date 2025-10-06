@@ -1,11 +1,10 @@
-use ark_crypto_primitives::sponge::Absorb;
-use ark_ff::Field;
 use ark_std::{ops::Mul, vec::*};
+use crypto_primitives::{ConstRing, Field};
 
-use crate::{cyclotomic_ring::Flatten, traits::FromRandomBytes, Ring, Zq};
+use crate::{cyclotomic_ring::Flatten, traits::FromRandomBytes, Zq};
 
-pub trait PolyRing: Ring + From<Vec<Self::BaseRing>> + FromRandomBytes<Self> + From<u128> {
-    type BaseRing: Ring;
+pub trait PolyRing: ConstRing + From<Vec<Self::BaseRing>> + FromRandomBytes<Self> + From<u128> {
+    type BaseRing: ConstRing + From<u128>;
 
     fn coeffs(&self) -> &[Self::BaseRing];
     fn coeffs_mut(&mut self) -> &mut [Self::BaseRing];
@@ -17,7 +16,7 @@ pub trait PolyRing: Ring + From<Vec<Self::BaseRing>> + FromRandomBytes<Self> + F
 }
 
 pub trait OverField:
-    PolyRing<BaseRing: Field<BasePrimeField: Absorb>>
+    PolyRing<BaseRing: Field>
     + Mul<Self::BaseRing, Output = Self>
     + From<Self::BaseRing>
     + Flatten
@@ -37,6 +36,6 @@ where
     O::BaseRing: Zq,
 {
     fn ct(&self) -> Self::BaseRing {
-        self.coeffs()[0]
+        self.coeffs()[0].clone()
     }
 }

@@ -1,5 +1,7 @@
-use ark_ff::{Field, Fp2, Fp2Config, Fp4, Fp4Config, MontBackend, MontFp};
+use ark_ff::{Field, Fp2, Fp2Config, Fp4, Fp4Config, MontBackend};
 use ark_std::{mem::swap, ops::Mul, vec::*};
+use crypto_primitives::{ark_ff_field::ArkField, mont_fp};
+use num_traits::{ConstOne, ConstZero};
 
 use crate::{
     cyclotomic_ring::{
@@ -8,7 +10,7 @@ use crate::{
     impl_crt_icrt_for_a_ring,
     poly_ring::PolyRing,
     traits::FromRandomBytes,
-    Cyclotomic, OverField,
+    Cyclotomic, OverField, StarkRing,
 };
 
 mod ntt;
@@ -16,7 +18,8 @@ mod utils;
 
 mod fq_def {
     #![allow(non_local_definitions)]
-    use ark_ff::{Fp64, MontBackend};
+    use ark_ff::MontBackend;
+    use crypto_primitives::ark_ff_fp::Fp64;
 
     #[derive(ark_ff::MontConfig)]
     #[modulus = "15912092521325583641"]
@@ -38,25 +41,25 @@ impl Fp2Config for Frog2Config {
     type Fp = Fq;
 
     const FROBENIUS_COEFF_FP2_C1: &'static [Self::Fp] =
-        &[<Fq as Field>::ONE, MontFp!("15912092521325583640")];
-    const NONRESIDUE: Self::Fp = MontFp!("2755067726615789629");
+        &[<Fq as ConstOne>::ONE, mont_fp!("15912092521325583640")];
+    const NONRESIDUE: Self::Fp = mont_fp!("2755067726615789629");
 }
 
-pub type Fq2 = Fp2<Frog2Config>;
+pub type Fq2 = ArkField<Fp2<Frog2Config>>;
 
 impl Fp4Config for Frog4Config {
     type Fp2Config = Frog2Config;
 
     const FROBENIUS_COEFF_FP4_C1: &'static [<Self::Fp2Config as Fp2Config>::Fp] = &[
-        <Fq as Field>::ONE,
-        MontFp!("2674048055506678227"),
-        MontFp!("15912092521325583640"),
-        MontFp!("13238044465818905414"),
+        <Fq as ConstOne>::ONE,
+        mont_fp!("2674048055506678227"),
+        mont_fp!("15912092521325583640"),
+        mont_fp!("13238044465818905414"),
     ];
-    const NONRESIDUE: Fq2 = Fp2::new(<Fq as Field>::ZERO, <Fq as Field>::ONE);
+    const NONRESIDUE: Fp2<Frog2Config> = Fp2::new(Fq::ZERO, <Fq as ConstOne>::ONE);
 }
 
-pub type Fq4 = Fp4<Frog4Config>;
+pub type Fq4 = ArkField<Fp4<Frog4Config>>;
 
 impl FromRandomBytes<Fq4> for Fq4 {
     #[inline(always)]
@@ -68,6 +71,8 @@ impl FromRandomBytes<Fq4> for Fq4 {
         Self::from_random_bytes(bytes)
     }
 }
+
+impl StarkRing for Fq4 {}
 
 impl CyclotomicConfig<1> for FrogRingConfig {
     type BaseCRTField = Fq4;
@@ -81,7 +86,7 @@ impl CyclotomicConfig<1> for FrogRingConfig {
             *coeff_left -= coeff_right;
         }
 
-        coefficients.resize(ntt::D, <Fq as Field>::ZERO);
+        coefficients.resize(ntt::D, Fq::ZERO);
     }
 
     #[inline(always)]
@@ -141,6 +146,7 @@ mod test {
         DenseUVPolynomial,
     };
     use ark_std::UniformRand;
+    use num_traits::ConstOne;
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
 
@@ -148,7 +154,7 @@ mod test {
     use crate::{
         balanced_decomposition::Decompose,
         cyclotomic_ring::crt::{CRT, ICRT},
-        PolyRing, Ring,
+        PolyRing, StarkRing,
     };
 
     #[test]
@@ -183,10 +189,10 @@ mod test {
 
         for _i in 0..6 {
             pow *= nonresidue;
-            assert_ne!(pow, <Fq as Field>::ONE);
+            assert_ne!(pow, <Fq as ConstOne>::ONE);
         }
 
-        assert_eq!(pow * nonresidue, <Fq as Field>::ONE);
+        assert_eq!(pow * nonresidue, <Fq as ConstOne>::ONE);
     }
 
     #[test]
@@ -198,8 +204,8 @@ mod test {
 
         // X^24 - X^12 + 1
         let the_cyclotomic = SparsePolynomial::from_coefficients_slice(&[
-            (16, <Fq as Field>::ONE),
-            (0, <Fq as Field>::ONE),
+            (16, <Fq as ConstOne>::ONE),
+            (0, <Fq as ConstOne>::ONE),
         ]);
 
         let (_, r) =
@@ -240,7 +246,7 @@ mod test {
 
         for i in 1..RqPoly::dimension() {
             a.rot();
-            assert_eq!(a, initial_a * x.pow([i as u64]));
+            assert_eq!(a, initial_a * x.pow_limbs([i as u64]));
         }
     }
 }

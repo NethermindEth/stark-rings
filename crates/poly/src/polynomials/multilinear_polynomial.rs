@@ -10,13 +10,13 @@ use rayon::prelude::{IndexedParallelIterator, IntoParallelRefMutIterator, Parall
 use super::{util::get_batched_nv, ArithErrors, RefCounter};
 pub use crate::mle::DenseMultilinearExtension;
 use crate::mle::MultilinearExtension;
-use stark_rings::Ring;
+use stark_rings::StarkRing;
 
 /// Sample a random list of multilinear polynomials.
 /// Returns
 /// - the list of polynomials,
 /// - its sum of polynomial evaluations over the boolean hypercube.
-pub fn random_mle_list<R: Ring, Rn: RngCore>(
+pub fn random_mle_list<R: StarkRing, Rn: RngCore>(
     nv: usize,
     degree: usize,
     rng: &mut Rn,
@@ -49,7 +49,7 @@ pub fn random_mle_list<R: Ring, Rn: RngCore>(
 }
 
 // Build a randomize list of mle-s whose sum is zero.
-pub fn random_zero_mle_list<R: Ring, Rn: RngCore>(
+pub fn random_zero_mle_list<R: StarkRing, Rn: RngCore>(
     nv: usize,
     degree: usize,
     rng: &mut Rn,
@@ -76,13 +76,13 @@ pub fn random_zero_mle_list<R: Ring, Rn: RngCore>(
     list
 }
 
-pub fn identity_permutation<R: Ring>(num_vars: usize, num_chunks: usize) -> Vec<R> {
+pub fn identity_permutation<R: StarkRing>(num_vars: usize, num_chunks: usize) -> Vec<R> {
     let len = (num_chunks as u64) * (1u64 << num_vars);
     (0..len).map(R::from).collect()
 }
 
 /// A list of MLEs that represents an identity permutation
-pub fn identity_permutation_mles<R: Ring>(
+pub fn identity_permutation_mles<R: StarkRing>(
     num_vars: usize,
     num_chunks: usize,
 ) -> Vec<RefCounter<DenseMultilinearExtension<R>>> {
@@ -97,7 +97,7 @@ pub fn identity_permutation_mles<R: Ring>(
     res
 }
 
-pub fn random_permutation<R: Ring, Rn: RngCore>(
+pub fn random_permutation<R: StarkRing, Rn: RngCore>(
     num_vars: usize,
     num_chunks: usize,
     rng: &mut Rn,
@@ -113,7 +113,7 @@ pub fn random_permutation<R: Ring, Rn: RngCore>(
 }
 
 /// A list of MLEs that represent a random permutation
-pub fn random_permutation_mles<R: Ring, Rn: RngCore>(
+pub fn random_permutation_mles<R: StarkRing, Rn: RngCore>(
     num_vars: usize,
     num_chunks: usize,
     rng: &mut Rn,
@@ -132,12 +132,12 @@ pub fn random_permutation_mles<R: Ring, Rn: RngCore>(
     res
 }
 
-pub fn evaluate_opt<R: Ring>(poly: &DenseMultilinearExtension<R>, point: &[R]) -> R {
+pub fn evaluate_opt<R: StarkRing>(poly: &DenseMultilinearExtension<R>, point: &[R]) -> R {
     assert_eq!(poly.num_vars, point.len());
     fix_variables(poly, point).evaluations[0]
 }
 
-pub fn fix_variables<R: Ring>(
+pub fn fix_variables<R: StarkRing>(
     poly: &DenseMultilinearExtension<R>,
     partial_point: &[R],
 ) -> DenseMultilinearExtension<R> {
@@ -156,7 +156,7 @@ pub fn fix_variables<R: Ring>(
     DenseMultilinearExtension::<R>::from_evaluations_slice(nv - dim, &poly[..1 << (nv - dim)])
 }
 
-fn fix_one_variable_helper<R: Ring>(data: &[R], nv: usize, point: &R) -> Vec<R> {
+fn fix_one_variable_helper<R: StarkRing>(data: &[R], nv: usize, point: &R) -> Vec<R> {
     let mut res = vec![R::zero(); 1 << (nv - 1)];
 
     // evaluate single variable of partial point from left to right
@@ -173,12 +173,12 @@ fn fix_one_variable_helper<R: Ring>(data: &[R], nv: usize, point: &R) -> Vec<R> 
     res
 }
 
-pub fn evaluate_no_par<R: Ring>(poly: &DenseMultilinearExtension<R>, point: &[R]) -> R {
+pub fn evaluate_no_par<R: StarkRing>(poly: &DenseMultilinearExtension<R>, point: &[R]) -> R {
     assert_eq!(poly.num_vars, point.len());
     fix_variables_no_par(poly, point).evaluations[0]
 }
 
-fn fix_variables_no_par<R: Ring>(
+fn fix_variables_no_par<R: StarkRing>(
     poly: &DenseMultilinearExtension<R>,
     partial_point: &[R],
 ) -> DenseMultilinearExtension<R> {
@@ -201,7 +201,7 @@ fn fix_variables_no_par<R: Ring>(
 
 /// merge a set of polynomials. Returns an error if the
 /// polynomials do not share a same number of nvs.
-pub fn merge_polynomials<R: Ring>(
+pub fn merge_polynomials<R: StarkRing>(
     polynomials: &[RefCounter<DenseMultilinearExtension<R>>],
 ) -> Result<RefCounter<DenseMultilinearExtension<R>>, ArithErrors> {
     let nv = polynomials[0].num_vars();
@@ -224,7 +224,7 @@ pub fn merge_polynomials<R: Ring>(
     ))
 }
 
-pub fn fix_last_variables_no_par<R: Ring>(
+pub fn fix_last_variables_no_par<R: StarkRing>(
     poly: &DenseMultilinearExtension<R>,
     partial_point: &[R],
 ) -> DenseMultilinearExtension<R> {
@@ -235,7 +235,7 @@ pub fn fix_last_variables_no_par<R: Ring>(
     res
 }
 
-fn fix_last_variable_no_par<R: Ring>(
+fn fix_last_variable_no_par<R: StarkRing>(
     poly: &DenseMultilinearExtension<R>,
     partial_point: &R,
 ) -> DenseMultilinearExtension<R> {
@@ -248,7 +248,7 @@ fn fix_last_variable_no_par<R: Ring>(
     }
     DenseMultilinearExtension::from_evaluations_vec(nv - 1, res)
 }
-pub fn fix_last_variables<R: Ring>(
+pub fn fix_last_variables<R: StarkRing>(
     poly: &DenseMultilinearExtension<R>,
     partial_point: &[R],
 ) -> DenseMultilinearExtension<R> {
@@ -267,7 +267,7 @@ pub fn fix_last_variables<R: Ring>(
     DenseMultilinearExtension::<R>::from_evaluations_slice(nv - dim, &poly[..1 << (nv - dim)])
 }
 
-fn fix_last_variable_helper<R: Ring>(data: &[R], nv: usize, point: &R) -> Vec<R> {
+fn fix_last_variable_helper<R: StarkRing>(data: &[R], nv: usize, point: &R) -> Vec<R> {
     let half_len = 1 << (nv - 1);
     let mut res = vec![R::zero(); half_len];
 

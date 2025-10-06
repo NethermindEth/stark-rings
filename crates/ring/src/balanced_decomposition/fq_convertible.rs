@@ -1,4 +1,5 @@
-use ark_ff::{BigInt, BigInteger, Fp64, FpConfig, PrimeField};
+use ark_ff::{BigInt, BigInteger, FpConfig, PrimeField};
+use crypto_primitives::ark_ff_fp::Fp64;
 use num_bigint::BigUint;
 use num_integer::Integer;
 

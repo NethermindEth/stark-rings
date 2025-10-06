@@ -10,10 +10,10 @@ license = "MIT OR Apache-2.0"
 version = "0.0.1-alpha"
 
 [workspace.dependencies]
-ark-ff = "0.4"
-ark-poly = "0.4"
-ark-serialize = { version = "0.4", features = ["derive"] }
-ark-std = { version = "0.4", default-features = false }
+ark-ff = "0.5"
+ark-poly = "0.5"
+ark-serialize = { version = "0.5", features = ["derive"] }
+ark-std = { version = "0.5", default-features = false }
 delegate = "0.13"
 derive_more = "0.99"
 displaydoc = { version = "0.2", default-features = false }
@@ -30,6 +30,8 @@ stark-rings-poly = { path = "./crates/poly", default-features = false }
 syn = "2.0.87"
 thiserror = { version = "2", default-features = false }
 zeroize = "1.7"
+crypto-primitives = { git = "https://github.com/NethermindEth/crypto-primitives.git", rev = "035e6db", features = ["ark_ff", "rand"] }
+crypto-primitives-proc-macros = { git = "https://github.com/NethermindEth/crypto-primitives.git", rev = "035e6db" }
 
 [workspace.metadata.docs.rs]
 # To build locally, use 

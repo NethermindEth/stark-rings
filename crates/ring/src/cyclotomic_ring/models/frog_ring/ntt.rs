@@ -13,18 +13,18 @@ pub(super) const N: usize = 4;
 
 /// All 8 roots of unity of degree 8.
 const ROOTS_OF_UNITY_8: &[Fq] = &[
-    Fq::new(BigInt([1u64])),
-    Fq::new(BigInt([2755067726615789629u64])),
-    Fq::new(BigInt([13238044465818905414u64])),
-    Fq::new(BigInt([8043592722274778300u64])),
-    Fq::new(BigInt([15912092521325583640u64])), // -1
-    Fq::new(BigInt([13157024794709794012u64])),
-    Fq::new(BigInt([2674048055506678227u64])),
-    Fq::new(BigInt([7868499799050805341u64])),
+    Fq::new_from_bigint(BigInt([1u64])),
+    Fq::new_from_bigint(BigInt([2755067726615789629u64])),
+    Fq::new_from_bigint(BigInt([13238044465818905414u64])),
+    Fq::new_from_bigint(BigInt([8043592722274778300u64])),
+    Fq::new_from_bigint(BigInt([15912092521325583640u64])), // -1
+    Fq::new_from_bigint(BigInt([13157024794709794012u64])),
+    Fq::new_from_bigint(BigInt([2674048055506678227u64])),
+    Fq::new_from_bigint(BigInt([7868499799050805341u64])),
 ];
 
 /// 1 / 4
-const FOUR_INV: Fq = Fq::new(BigInt([11934069390994187731u64]));
+const FOUR_INV: Fq = Fq::new_from_bigint(BigInt([11934069390994187731u64]));
 
 /// Given `coefficients` of a polynoimial `f mod X^16 + 1`
 /// returns its CRT:
@@ -268,8 +268,9 @@ fn nonresidue_to_nonresidue_to_7(c: &mut [Fq]) {
 
 #[cfg(test)]
 mod tests {
-    use ark_ff::{Field, MontFp, UniformRand};
-    use ark_std::Zero;
+    use ark_ff::{Field, UniformRand};
+    use crypto_primitives::mont_fp;
+    use num_traits::ConstZero;
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
 
@@ -301,10 +302,13 @@ mod tests {
             let mut rng = ChaCha8Rng::seed_from_u64(0);
             $({
                 let x = Fq4::rand(&mut rng);
-                let mut x_prime: Vec<Fq> = vec![x.c0.c0, x.c0.c1, x.c1.c0, x.c1.c1];
+                let mut x_prime: Vec<Fq> = vec![x.inner().c0.c0.into(), x.inner().c0.c1.into(), x.inner().c1.c0.into(), x.inner().c1.c1.into()];
                 $isomorphism(&mut x_prime);
                 $inverse(&mut x_prime);
-                assert_eq!(Fq4::new(Fq2::new(x_prime[0], x_prime[1]), Fq2::new(x_prime[2], x_prime[3])), x);
+                assert_eq!(Fq4::new_ext(
+                    *Fq2::new_ext(x_prime[0], x_prime[1]),
+                    *Fq2::new_ext(x_prime[2], x_prime[3])
+                ), x);
             })+
         };
     }
@@ -329,9 +333,9 @@ mod tests {
                 $inverse(&mut x_prime_2);
                 $inverse(&mut x_prime_3);
 
-                let x_prime = Fq4::new(Fq2::new(x_prime[0], x_prime[1]), Fq2::new(x_prime[2], x_prime[3]));
-                let x_prime_2 = Fq4::new(Fq2::new(x_prime_2[0], x_prime_2[1]), Fq2::new(x_prime_2[2], x_prime_2[3]));
-                let x_prime_3 = Fq4::new(Fq2::new(x_prime_3[0], x_prime_3[1]), Fq2::new(x_prime_3[2], x_prime_3[3]));
+                let x_prime = Fq4::new_ext(*Fq2::new_ext(x_prime[0], x_prime[1]), *Fq2::new_ext(x_prime[2], x_prime[3]));
+                let x_prime_2 = Fq4::new_ext(*Fq2::new_ext(x_prime_2[0], x_prime_2[1]), *Fq2::new_ext(x_prime_2[2], x_prime_2[3]));
+                let x_prime_3 = Fq4::new_ext(*Fq2::new_ext(x_prime_3[0], x_prime_3[1]), *Fq2::new_ext(x_prime_3[2], x_prime_3[3]));
 
                 assert_eq!(x_prime * x_prime, x_prime_2);
                 assert_eq!(x_prime * x_prime * x_prime, x_prime_3);
@@ -355,7 +359,7 @@ mod tests {
                 let mut x_prime: Vec<Fq> = vec![Fq::ZERO, Fq::ONE, Fq::ZERO, Fq::ZERO];
                 $inverse(&mut x_prime);
 
-                let x_prime = Fq4::new(Fq2::new(x_prime[0], x_prime[1]), Fq2::new(x_prime[2], x_prime[3]));
+                let x_prime = Fq4::new_ext(*Fq2::new_ext(x_prime[0], x_prime[1]), *Fq2::new_ext(x_prime[2], x_prime[3]));
 
                 assert_eq!(x_prime * x_prime * x_prime * x_prime - Fq4::from_base_prime_field($root_of_unity), Fq4::ZERO);
             })+
@@ -391,38 +395,38 @@ mod tests {
             Fq::from(1),
             Fq::from(2),
             Fq::from(3),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
             Fq::from(15),
         ];
 
         let expected: Vec<Fq> = vec![
-            MontFp!("1"),
-            MontFp!("2"),
-            MontFp!("3"),
-            MontFp!("9269243184842589013"),
-            MontFp!("1"),
-            MontFp!("2"),
-            MontFp!("3"),
-            MontFp!("6642849336482994628"),
-            MontFp!("1"),
-            MontFp!("2"),
-            MontFp!("3"),
-            MontFp!("9501830856585677153"),
-            MontFp!("1"),
-            MontFp!("2"),
-            MontFp!("3"),
-            MontFp!("6410261664739906488"),
+            mont_fp!("1"),
+            mont_fp!("2"),
+            mont_fp!("3"),
+            mont_fp!("9269243184842589013"),
+            mont_fp!("1"),
+            mont_fp!("2"),
+            mont_fp!("3"),
+            mont_fp!("6642849336482994628"),
+            mont_fp!("1"),
+            mont_fp!("2"),
+            mont_fp!("3"),
+            mont_fp!("9501830856585677153"),
+            mont_fp!("1"),
+            mont_fp!("2"),
+            mont_fp!("3"),
+            mont_fp!("6410261664739906488"),
         ];
 
         serial_frog_crt_in_place(&mut test_poly);
@@ -436,34 +440,34 @@ mod tests {
     fn test_crt2() {
         // 2342 + 543543 * X + 3 * X^2 + 325*X^3 + 235325325 * X^5 + 765568568 * X^6
         let mut test_poly: Vec<Fq> = vec![
-            MontFp!("2342"),
-            MontFp!("543543"),
-            MontFp!("3"),
-            MontFp!("325"),
-            MontFp!("0"),
-            MontFp!("235325325"),
-            MontFp!("765568568"),
+            mont_fp!("2342"),
+            mont_fp!("543543"),
+            mont_fp!("3"),
+            mont_fp!("325"),
+            mont_fp!("0"),
+            mont_fp!("235325325"),
+            mont_fp!("765568568"),
         ];
 
-        test_poly.resize_with(D, Fq::zero);
+        test_poly.resize_with(D, || Fq::ZERO);
 
         let expected: Vec<Fq> = vec![
-            MontFp!("2342"),
-            MontFp!("843289782635822351"),
-            MontFp!("9218688620283687143"),
-            MontFp!("325"),
-            MontFp!("2342"),
-            MontFp!("15068802738690848376"),
-            MontFp!("6693403901041896504"),
-            MontFp!("325"),
-            MontFp!("2342"),
-            MontFp!("12113166087288599489"),
-            MontFp!("3527640652310596771"),
-            MontFp!("325"),
-            MontFp!("2342"),
-            MontFp!("3798926434038071238"),
-            MontFp!("12384451869014986876"),
-            MontFp!("325"),
+            mont_fp!("2342"),
+            mont_fp!("843289782635822351"),
+            mont_fp!("9218688620283687143"),
+            mont_fp!("325"),
+            mont_fp!("2342"),
+            mont_fp!("15068802738690848376"),
+            mont_fp!("6693403901041896504"),
+            mont_fp!("325"),
+            mont_fp!("2342"),
+            mont_fp!("12113166087288599489"),
+            mont_fp!("3527640652310596771"),
+            mont_fp!("325"),
+            mont_fp!("2342"),
+            mont_fp!("3798926434038071238"),
+            mont_fp!("12384451869014986876"),
+            mont_fp!("325"),
         ];
 
         serial_frog_crt_in_place(&mut test_poly);
@@ -480,38 +484,38 @@ mod tests {
             Fq::from(1),
             Fq::from(2),
             Fq::from(3),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
             Fq::from(15),
         ];
 
         let mut evaluations: Vec<Fq> = vec![
-            MontFp!("1"),
-            MontFp!("2"),
-            MontFp!("3"),
-            MontFp!("9269243184842589013"),
-            MontFp!("1"),
-            MontFp!("2"),
-            MontFp!("3"),
-            MontFp!("6642849336482994628"),
-            MontFp!("1"),
-            MontFp!("2"),
-            MontFp!("3"),
-            MontFp!("9501830856585677153"),
-            MontFp!("1"),
-            MontFp!("2"),
-            MontFp!("3"),
-            MontFp!("6410261664739906488"),
+            mont_fp!("1"),
+            mont_fp!("2"),
+            mont_fp!("3"),
+            mont_fp!("9269243184842589013"),
+            mont_fp!("1"),
+            mont_fp!("2"),
+            mont_fp!("3"),
+            mont_fp!("6642849336482994628"),
+            mont_fp!("1"),
+            mont_fp!("2"),
+            mont_fp!("3"),
+            mont_fp!("9501830856585677153"),
+            mont_fp!("1"),
+            mont_fp!("2"),
+            mont_fp!("3"),
+            mont_fp!("6410261664739906488"),
         ];
 
         homogenize_fq4(&mut evaluations);
@@ -525,34 +529,34 @@ mod tests {
     fn test_icrt_2() {
         // 2342 + 543543 * X + 3 * X^2 + 325*X^3 + 235325325 * X^5 + 765568568 * X^6
         let mut expected: Vec<Fq> = vec![
-            MontFp!("2342"),
-            MontFp!("543543"),
-            MontFp!("3"),
-            MontFp!("325"),
-            MontFp!("0"),
-            MontFp!("235325325"),
-            MontFp!("765568568"),
+            mont_fp!("2342"),
+            mont_fp!("543543"),
+            mont_fp!("3"),
+            mont_fp!("325"),
+            mont_fp!("0"),
+            mont_fp!("235325325"),
+            mont_fp!("765568568"),
         ];
 
-        expected.resize_with(D, Fq::zero);
+        expected.resize_with(D, || Fq::ZERO);
 
         let mut evaluations: Vec<Fq> = vec![
-            MontFp!("2342"),
-            MontFp!("843289782635822351"),
-            MontFp!("9218688620283687143"),
-            MontFp!("325"),
-            MontFp!("2342"),
-            MontFp!("15068802738690848376"),
-            MontFp!("6693403901041896504"),
-            MontFp!("325"),
-            MontFp!("2342"),
-            MontFp!("12113166087288599489"),
-            MontFp!("3527640652310596771"),
-            MontFp!("325"),
-            MontFp!("2342"),
-            MontFp!("3798926434038071238"),
-            MontFp!("12384451869014986876"),
-            MontFp!("325"),
+            mont_fp!("2342"),
+            mont_fp!("843289782635822351"),
+            mont_fp!("9218688620283687143"),
+            mont_fp!("325"),
+            mont_fp!("2342"),
+            mont_fp!("15068802738690848376"),
+            mont_fp!("6693403901041896504"),
+            mont_fp!("325"),
+            mont_fp!("2342"),
+            mont_fp!("12113166087288599489"),
+            mont_fp!("3527640652310596771"),
+            mont_fp!("325"),
+            mont_fp!("2342"),
+            mont_fp!("3798926434038071238"),
+            mont_fp!("12384451869014986876"),
+            mont_fp!("325"),
         ];
 
         homogenize_fq4(&mut evaluations);
@@ -593,9 +597,9 @@ mod tests {
         for i in 0..N {
             assert_eq!(
                 non_in_place[i],
-                Fq4::new(
-                    Fq2::new(coefficients[4 * i], coefficients[4 * i + 1]),
-                    Fq2::new(coefficients[4 * i + 2], coefficients[4 * i + 3])
+                Fq4::new_ext(
+                    *Fq2::new_ext(coefficients[4 * i], coefficients[4 * i + 1]),
+                    *Fq2::new_ext(coefficients[4 * i + 2], coefficients[4 * i + 3])
                 )
             );
         }
@@ -609,9 +613,9 @@ mod tests {
         let mut non_in_place: Vec<Fq4> = vec![Fq4::ZERO; N];
 
         for i in 0..N {
-            non_in_place[i] = Fq4::new(
-                Fq2::new(evaluations[4 * i], evaluations[4 * i + 1]),
-                Fq2::new(evaluations[4 * i + 2], evaluations[4 * i + 3]),
+            non_in_place[i] = Fq4::new_ext(
+                *Fq2::new_ext(evaluations[4 * i], evaluations[4 * i + 1]),
+                *Fq2::new_ext(evaluations[4 * i + 2], evaluations[4 * i + 3]),
             );
         }
 

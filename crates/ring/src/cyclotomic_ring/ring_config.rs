@@ -1,7 +1,8 @@
-use ark_ff::{Field, Fp, FpConfig};
+use ark_ff::{Field as ArkFfField, FpConfig};
 use ark_std::vec::*;
+use crypto_primitives::ark_ff_fp::Fp;
 
-use crate::Ring;
+use crate::StarkRing;
 
 /// The trait for describing cyclotomic ring parameters.
 /// It is used to specify:
@@ -12,7 +13,7 @@ pub trait CyclotomicConfig<const N: usize>: Send + Sync + 'static + Sized {
     /// The base prime field configuration of the underlying polynomial ring.
     type BaseFieldConfig: FpConfig<N>;
     /// The field of the CRT components.
-    type BaseCRTField: Field<BasePrimeField = Fp<Self::BaseFieldConfig, N>> + Ring;
+    type BaseCRTField: ArkFfField<BasePrimeField = Fp<Self::BaseFieldConfig, N>> + StarkRing;
 
     /// The field of the CRT components is a field extension of the base field.
     /// This constant specifies the degree.

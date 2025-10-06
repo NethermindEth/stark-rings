@@ -1,5 +1,7 @@
-use ark_ff::{Field, MontBackend};
+use ark_ff::MontBackend;
 use ark_std::{mem::swap, ops::Mul, vec::*};
+use crypto_primitives::ark_ff_fp::Fp;
+use num_traits::ConstZero;
 
 use crate::{
     cyclotomic_ring::{
@@ -15,7 +17,8 @@ mod ntt;
 
 mod fq_def {
     #![allow(non_local_definitions, unexpected_cfgs)]
-    use ark_ff::{Fp256, MontBackend, MontConfig};
+    use ark_ff::{MontBackend, MontConfig};
+    use crypto_primitives::ark_ff_fp::Fp256;
 
     #[derive(MontConfig)]
     #[modulus = "3618502788666131213697322783095070105623107215331596699973092056135872020481"]
@@ -37,13 +40,13 @@ impl CyclotomicConfig<4> for StarkRingConfig {
 
     const CRT_FIELD_EXTENSION_DEGREE: usize = 1;
 
-    fn reduce_in_place(coefficients: &mut Vec<ark_ff::Fp<Self::BaseFieldConfig, 4>>) {
+    fn reduce_in_place(coefficients: &mut Vec<Fp<Self::BaseFieldConfig, 4>>) {
         let (left, right) = coefficients.split_at_mut(ntt::D);
         for (coeff_left, coeff_right) in left.iter_mut().zip(right) {
             *coeff_left -= coeff_right;
         }
 
-        coefficients.resize(ntt::D, <Fq as Field>::ZERO);
+        coefficients.resize(ntt::D, Fq::ZERO);
     }
 
     #[inline(always)]
@@ -103,6 +106,7 @@ mod test {
         DenseUVPolynomial,
     };
     use ark_std::UniformRand;
+    use num_traits::ConstOne;
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
 
@@ -110,7 +114,7 @@ mod test {
     use crate::{
         balanced_decomposition::Decompose,
         cyclotomic_ring::crt::{CRT, ICRT},
-        PolyRing, Ring,
+        PolyRing, StarkRing,
     };
 
     #[test]
@@ -144,10 +148,8 @@ mod test {
         let poly = DensePolynomial::from_coefficients_slice(&coeffs);
 
         // X^16 + 1
-        let the_cyclotomic = SparsePolynomial::from_coefficients_slice(&[
-            (16, <Fq as Field>::ONE),
-            (0, <Fq as Field>::ONE),
-        ]);
+        let the_cyclotomic =
+            SparsePolynomial::from_coefficients_slice(&[(16, Fq::ONE), (0, Fq::ONE)]);
 
         let (_, r) =
             DenseOrSparsePolynomial::divide_with_q_and_r(&poly.into(), &the_cyclotomic.into())
@@ -187,7 +189,7 @@ mod test {
 
         for i in 1..RqPoly::dimension() {
             a.rot();
-            assert_eq!(a, initial_a * x.pow([i as u64]));
+            assert_eq!(a, initial_a * x.pow_limbs([i as u64]));
         }
     }
 }

@@ -1,5 +1,7 @@
-use ark_ff::{Field, Fp3, Fp3Config, MontBackend, MontFp};
+use ark_ff::{Field, Fp3, Fp3Config, MontBackend};
 use ark_std::{mem::swap, ops::Mul, vec::*};
+use crypto_primitives::{ark_ff_field::ArkField, mont_fp};
+use num_traits::ConstZero;
 
 use crate::{
     cyclotomic_ring::{
@@ -7,7 +9,7 @@ use crate::{
     },
     impl_crt_icrt_for_a_ring,
     traits::FromRandomBytes,
-    Cyclotomic, OverField, PolyRing,
+    Cyclotomic, OverField, PolyRing, StarkRing,
 };
 
 mod ntt;
@@ -15,7 +17,8 @@ mod utils;
 
 mod fq_def {
     #![allow(non_local_definitions)]
-    use ark_ff::{Fp64, MontBackend, MontConfig};
+    use ark_ff::{MontBackend, MontConfig};
+    use crypto_primitives::ark_ff_fp::Fp64;
 
     #[derive(MontConfig)]
     #[modulus = "18446744069414584321"]
@@ -39,19 +42,19 @@ impl Fp3Config for Goldilocks3Config {
     const FROBENIUS_COEFF_FP3_C1: &'static [Fq] = &[];
     // NQR ^ (2*MODULUS^i - 2)/3, i=0,1,2 with NQR = u = (0,1,0)
     const FROBENIUS_COEFF_FP3_C2: &'static [Fq] = &[];
-    const NONRESIDUE: Self::Fp = MontFp!("1099511627776");
+    const NONRESIDUE: Self::Fp = mont_fp!("1099511627776");
     // 7 ^ t.
     const QUADRATIC_NONRESIDUE_TO_T: ark_ff::Fp3<Self> = Fp3::new(
-        MontFp!("3607031617444012685"),
-        <Fq as Field>::ZERO,
-        <Fq as Field>::ZERO,
+        mont_fp!("3607031617444012685"),
+        <Fq as ConstZero>::ZERO,
+        <Fq as ConstZero>::ZERO,
     );
     const TRACE_MINUS_ONE_DIV_TWO: &'static [u64] =
         &[9223372049739677694, 9223372049739677692, 2147483646];
     const TWO_ADICITY: u32 = 32;
 }
 
-pub type Fq3 = Fp3<Goldilocks3Config>;
+pub type Fq3 = ArkField<Fp3<Goldilocks3Config>>;
 
 impl FromRandomBytes<Fq3> for Fq3 {
     #[inline(always)]
@@ -63,6 +66,8 @@ impl FromRandomBytes<Fq3> for Fq3 {
         Self::from_random_bytes(bytes)
     }
 }
+
+impl StarkRing for Fq3 {}
 
 pub struct GoldilocksRingConfig;
 
@@ -77,11 +82,11 @@ impl CyclotomicConfig<1> for GoldilocksRingConfig {
             let a24_i = coefficients
                 .get(ntt::D + i)
                 .copied()
-                .unwrap_or(<Fq as Field>::ZERO);
+                .unwrap_or(<Fq as ConstZero>::ZERO);
             let a24_12_i = coefficients
                 .get(ntt::D + ntt::D / 2 + i)
                 .copied()
-                .unwrap_or(<Fq as Field>::ZERO);
+                .unwrap_or(<Fq as ConstZero>::ZERO);
             coefficients[i] -= a24_i;
             coefficients[i] -= a24_12_i;
         }
@@ -90,11 +95,11 @@ impl CyclotomicConfig<1> for GoldilocksRingConfig {
             let a_12_i = coefficients
                 .get(ntt::D / 2 + i)
                 .copied()
-                .unwrap_or(<Fq as Field>::ZERO);
+                .unwrap_or(<Fq as ConstZero>::ZERO);
             coefficients[i] += a_12_i;
         }
 
-        coefficients.resize(ntt::D, <Fq as Field>::ZERO);
+        coefficients.resize(ntt::D, <Fq as ConstZero>::ZERO);
     }
 
     #[inline(always)]
@@ -157,6 +162,7 @@ mod test {
         DenseUVPolynomial,
     };
     use ark_std::UniformRand;
+    use num_traits::ConstOne;
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
 
@@ -164,7 +170,7 @@ mod test {
     use crate::{
         balanced_decomposition::Decompose,
         cyclotomic_ring::crt::{CRT, ICRT},
-        PolyRing, Ring,
+        PolyRing,
     };
 
     #[test]
@@ -199,10 +205,10 @@ mod test {
 
         for _i in 0..22 {
             pow *= nonresidue;
-            assert_ne!(pow, <Fq as Field>::ONE);
+            assert_ne!(pow, <Fq as ConstOne>::ONE);
         }
 
-        assert_eq!(pow * nonresidue, <Fq as Field>::ONE);
+        assert_eq!(pow * nonresidue, <Fq as ConstOne>::ONE);
     }
 
     #[test]
@@ -214,9 +220,9 @@ mod test {
 
         // X^24 - X^12 + 1
         let the_cyclotomic = SparsePolynomial::from_coefficients_slice(&[
-            (24, <Fq as Field>::ONE),
-            (12, -<Fq as Field>::ONE),
-            (0, <Fq as Field>::ONE),
+            (24, <Fq as ConstOne>::ONE),
+            (12, -<Fq as ConstOne>::ONE),
+            (0, <Fq as ConstOne>::ONE),
         ]);
 
         let (_, r) =
@@ -257,7 +263,7 @@ mod test {
 
         for i in 1..RqPoly::dimension() {
             a.rot();
-            assert_eq!(a, initial_a * x.pow([i as u64]));
+            assert_eq!(a, initial_a * x.pow_limbs([i as u64]));
         }
     }
 }

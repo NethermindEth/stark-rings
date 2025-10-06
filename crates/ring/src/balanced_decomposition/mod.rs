@@ -10,15 +10,16 @@ use num_traits::Signed;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-use crate::Ring;
+use crate::StarkRing;
 use convertible_ring::ConvertibleRing;
+use crypto_primitives::FixedRing;
 use stark_rings_linalg::{ops::rounded_div, Matrix, SparseMatrix, SymmetricMatrix};
 pub mod convertible_ring;
 mod fq_convertible;
 pub(crate) mod representatives;
 
 /// Ring decomposition
-pub trait Decompose: Ring {
+pub trait Decompose: FixedRing {
     fn decompose_to(&self, b: u128, out: &mut [Self]);
     fn decompose(&self, b: u128, padding_size: usize) -> Vec<Self> {
         let mut out = vec![Self::zero(); padding_size];
@@ -68,7 +69,7 @@ pub fn decompose_balanced_in_place<Z: ConvertibleRing>(v: &Z, b: u128, out: &mut
     // efficient divisions/remainders
     assert_eq!(b % 2, 0, "decomposition basis must be even");
 
-    let mut curr = Into::<Z::SignedInt>::into(*v);
+    let mut curr = Into::<Z::SignedInt>::into(v.clone());
     let mut current_i = 0;
     let b = b as i128;
     let b_half_floor = b.div_euclid(2);
@@ -102,14 +103,14 @@ pub fn decompose_balanced_in_place<Z: ConvertibleRing>(v: &Z, b: u128, out: &mut
     }
 }
 
-pub fn recompose<A, B>(v: &[A], b: B) -> A
+pub fn recompose<A, B>(v: &[A], b: &B) -> A
 where
     A: Zero + for<'a> MulAssign<&'a B> + for<'a> AddAssign<&'a A>,
 {
     let mut result = A::zero();
 
     for v_i in v.iter().rev() {
-        result *= &b;
+        result *= b;
         result += v_i;
     }
 
@@ -174,7 +175,7 @@ impl<R: Decompose> GadgetDecompose for &[R] {
     }
 }
 
-impl<R: Ring> GadgetRecompose for &[R] {
+impl<R: StarkRing> GadgetRecompose for &[R] {
     type Output = Vec<R>;
 
     fn gadget_recompose(&self, b: u128, padding_size: usize) -> Vec<R> {
@@ -183,7 +184,7 @@ impl<R: Ring> GadgetRecompose for &[R] {
 
         cfg_chunks!(self, padding_size)
             .zip(cfg_iter_mut!(out))
-            .for_each(|(chunk, v)| *v = recompose(chunk, b));
+            .for_each(|(chunk, v)| *v = recompose(chunk, &b));
 
         out
     }
@@ -197,7 +198,7 @@ impl<R: Decompose> GadgetDecompose for Vec<R> {
     }
 }
 
-impl<R: Ring> GadgetRecompose for Vec<R> {
+impl<R: StarkRing> GadgetRecompose for Vec<R> {
     type Output = Vec<R>;
 
     fn gadget_recompose(&self, b: u128, padding_size: usize) -> Vec<R> {
@@ -216,20 +217,20 @@ impl<R: Decompose> GadgetDecompose for &[(R, usize)] {
             .for_each(|(chunk, (r, index))| {
                 let decomposed = r.decompose(b, padding_size);
 
-                for (i, &r) in decomposed.iter().enumerate() {
+                for (i, r) in decomposed.iter().enumerate() {
                     let new_index = index * padding_size + i;
-                    chunk[i] = (r, new_index);
+                    chunk[i] = (r.clone(), new_index);
                 }
             });
 
         // Maintain full sparsity
-        out.retain(|&(r, _)| r != R::zero());
+        out.retain(|(r, _)| !r.is_zero());
 
         out
     }
 }
 
-impl<R: Ring> GadgetRecompose for &[(R, usize)] {
+impl<R: StarkRing> GadgetRecompose for &[(R, usize)] {
     type Output = Vec<(R, usize)>;
 
     fn gadget_recompose(&self, b: u128, padding_size: usize) -> Vec<(R, usize)> {
@@ -258,14 +259,14 @@ impl<R: Ring> GadgetRecompose for &[(R, usize)] {
                 chunk
                     .iter()
                     .for_each(|(elem, i)| decomposed[i % padding_size] = *elem);
-                let recomposed = recompose(&decomposed, b);
+                let recomposed = recompose(&decomposed, &b);
                 (recomposed, index)
             })
             .collect()
     }
 }
 
-impl<R: Ring> GadgetRecompose for Vec<(R, usize)> {
+impl<R: StarkRing> GadgetRecompose for Vec<(R, usize)> {
     type Output = Vec<(R, usize)>;
 
     fn gadget_recompose(&self, b: u128, padding_size: usize) -> Vec<(R, usize)> {
@@ -297,7 +298,7 @@ impl<R: Decompose> GadgetDecompose for Matrix<R> {
     }
 }
 
-impl<R: Ring> GadgetRecompose for Matrix<R> {
+impl<R: StarkRing> GadgetRecompose for Matrix<R> {
     type Output = Matrix<R>;
 
     fn gadget_recompose(&self, b: u128, padding_size: usize) -> Matrix<R> {
@@ -336,7 +337,7 @@ impl<R: Decompose> GadgetDecompose for SparseMatrix<R> {
     }
 }
 
-impl<R: Ring> GadgetRecompose for SparseMatrix<R> {
+impl<R: StarkRing> GadgetRecompose for SparseMatrix<R> {
     type Output = SparseMatrix<R>;
 
     fn gadget_recompose(&self, b: u128, padding_size: usize) -> SparseMatrix<R> {
@@ -416,7 +417,7 @@ mod tests {
                 }
 
                 // Check that the decomposition is correct
-                assert_eq!(*v, recompose(&decomp, R::from(b)));
+                assert_eq!(*v, recompose(&decomp, &R::from(b)));
             }
         }
     }
@@ -443,7 +444,7 @@ mod tests {
             for i in 0..decomp.len() {
                 // Check that the decomposition is correct
                 let decomp_i = decomp.iter().map(|d_j| d_j[i]).collect::<Vec<_>>();
-                assert_eq!(v[i], recompose(&decomp_i, R::from(b)));
+                assert_eq!(v[i], recompose(&decomp_i, &R::from(b)));
             }
         }
     }
@@ -462,7 +463,7 @@ mod tests {
                 }
             }
 
-            assert_eq!(v, recompose::<PolyR, u128>(&decomp, b));
+            assert_eq!(v, recompose::<PolyR, u128>(&decomp, &b));
         }
     }
 

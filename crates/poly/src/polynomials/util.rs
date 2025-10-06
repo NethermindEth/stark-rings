@@ -4,7 +4,7 @@
 // Adapted for rings by Nethermind
 
 use ark_std::{log2, vec::*};
-use stark_rings::Ring;
+use crypto_primitives::ConstIntRing;
 
 /// Decompose an integer into a binary vector in little endian.
 pub fn bit_decompose(input: u64, num_var: usize) -> Vec<bool> {
@@ -19,7 +19,7 @@ pub fn bit_decompose(input: u64, num_var: usize) -> Vec<bool> {
 
 /// given the evaluation input `point` of the `index`-th polynomial,
 /// obtain the evaluation point in the merged polynomial
-pub fn gen_eval_point<R: Ring>(index: usize, index_len: usize, point: &[R]) -> Vec<R> {
+pub fn gen_eval_point<R: ConstIntRing>(index: usize, index_len: usize, point: &[R]) -> Vec<R> {
     let index_vec: Vec<R> = bit_decompose(index as u64, index_len)
         .into_iter()
         .map(|x| R::from(x))

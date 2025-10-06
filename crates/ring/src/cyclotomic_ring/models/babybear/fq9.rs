@@ -1,5 +1,6 @@
 use ark_ff::{CubicExtConfig, CubicExtField, Fp3, Fp3Config, SqrtPrecomputation};
 use ark_std::{marker::PhantomData, vec::*};
+use crypto_primitives::ark_ff_field::ArkField;
 
 use super::{BabyBear3ExtConfig, Fq, Fq9};
 use crate::utils::into_raw_parts;
@@ -26,7 +27,7 @@ pub trait Fp9Config: 'static + Send + Sync + Sized {
     }
 }
 
-pub type Fq3 = Fp3<BabyBear3ExtConfig>;
+pub type Fq3 = ArkField<Fp3<BabyBear3ExtConfig>>;
 
 pub struct Fp9ConfigWrapper<P: Fp9Config>(PhantomData<P>);
 

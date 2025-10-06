@@ -32,6 +32,8 @@ serde_with = { workspace = true }
 stark-rings-linalg = { workspace = true }
 thiserror = { workspace = true }
 zeroize = { workspace = true }
+crypto-primitives = { workspace = true }
+crypto-primitives-proc-macros = { workspace = true }
 
 [dev-dependencies]
 rand_chacha = { version = "0.3.1", default-features = false }

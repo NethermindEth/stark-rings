@@ -1,6 +1,7 @@
 use super::{CoeffRing, PolyRing, Zq};
-use crate::{ConversionError, Ring};
+use crate::ConversionError;
 use ark_std::One;
+use num_traits::{ConstOne, ConstZero};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -52,7 +53,7 @@ where
 /// Computes a unit monomial using `a` as an exponent, where
 /// \text{exp(a)} = \text{sign}(a)X^a.
 /// When a < 0, the output will be the unit monomial X^{d-a}.
-pub fn exp<R: CoeffRing>(a: R::BaseRing) -> Result<R, MonomialError<R>>
+pub fn exp<R: CoeffRing>(a: &R::BaseRing) -> Result<R, MonomialError<R>>
 where
     R::BaseRing: Zq,
 {
@@ -83,7 +84,7 @@ pub fn psi_range_check<R: CoeffRing>(a: R::BaseRing) -> Result<(), MonomialError
 where
     R::BaseRing: Zq,
 {
-    let b: R = exp(a)?;
+    let b: R = exp(&a)?;
 
     let ct = (psi::<R>() * b).ct();
 

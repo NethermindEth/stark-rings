@@ -1,7 +1,8 @@
 use ark_std::vec::*;
 use num_bigint::BigUint;
+use num_traits::{ConstOne, ConstZero};
 
-use crate::{PolyRing, Ring};
+use crate::PolyRing;
 
 pub trait WithL2Norm {
     fn l2_norm_squared(&self) -> BigUint;
@@ -77,7 +78,7 @@ impl<R: Cyclotomic> Iterator for Rotation<R> {
     type Item = R;
 
     fn next(&mut self) -> Option<R> {
-        let curr = self.curr;
+        let curr = self.curr.clone();
 
         self.curr.rot();
 

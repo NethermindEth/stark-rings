@@ -1,4 +1,5 @@
 use ark_std::ops::{Add, BitXor, Div, DivAssign, Rem, Sub};
+use crypto_primitives::FixedRing;
 use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
 use num_traits::sign::Signed;
@@ -6,13 +7,12 @@ use num_traits::sign::Signed;
 use crate::{
     balanced_decomposition::Decompose,
     traits::{WithL2Norm, WithLinfNorm},
-    Ring,
 };
 
 use super::decompose_balanced_in_place;
 
 pub trait ConvertibleRing:
-    Ring
+    FixedRing
     + Into<Self::UnsignedInt>
     + Into<Self::SignedInt>
     + From<Self::UnsignedInt>
@@ -49,7 +49,7 @@ impl<Z: ConvertibleRing> Decompose for Z {
 // Norms
 impl<Z: ConvertibleRing> WithL2Norm for Z {
     fn l2_norm_squared(&self) -> BigUint {
-        let x: <Z as ConvertibleRing>::SignedInt = (*self).into();
+        let x: <Z as ConvertibleRing>::SignedInt = self.clone().into();
         let x: BigInt = x.into();
 
         x.pow(2).try_into().unwrap()
@@ -58,7 +58,7 @@ impl<Z: ConvertibleRing> WithL2Norm for Z {
 
 impl<Z: ConvertibleRing> WithLinfNorm for Z {
     fn linf_norm(&self) -> BigUint {
-        let x: <Z as ConvertibleRing>::SignedInt = (*self).into();
+        let x: <Z as ConvertibleRing>::SignedInt = self.clone().into();
         let x: BigInt = x.into();
 
         x.abs().to_biguint().unwrap()

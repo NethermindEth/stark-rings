@@ -13,38 +13,38 @@ pub(super) const N: usize = 8;
 
 /// All 24 roots of unity of degree 24.
 const ROOTS_OF_UNITY_24: &[Fq] = &[
-    Fq::new(BigInt([1u64])),
-    Fq::new(BigInt([1099511627776u64])),
-    Fq::new(BigInt([281474976645120u64])),
-    Fq::new(BigInt([18446744069397807105u64])),
-    Fq::new(BigInt([18446744065119617026u64])),
-    Fq::new(BigInt([256u64])),
-    Fq::new(BigInt([281474976710656u64])),
-    Fq::new(BigInt([72057594021150720u64])),
-    Fq::new(BigInt([18446744065119617025u64])),
-    Fq::new(BigInt([18446742969902956801u64])),
-    Fq::new(BigInt([65536u64])),
-    Fq::new(BigInt([72057594037927936u64])),
-    Fq::new(BigInt([18446744069414584320u64])),
-    Fq::new(BigInt([18446742969902956545u64])),
-    Fq::new(BigInt([18446462594437939201u64])),
-    Fq::new(BigInt([16777216u64])),
-    Fq::new(BigInt([4294967295u64])),
-    Fq::new(BigInt([18446744069414584065u64])),
-    Fq::new(BigInt([18446462594437873665u64])),
-    Fq::new(BigInt([18374686475393433601u64])),
-    Fq::new(BigInt([4294967296u64])),
-    Fq::new(BigInt([1099511627520u64])),
-    Fq::new(BigInt([18446744069414518785u64])),
-    Fq::new(BigInt([18374686475376656385u64])),
+    Fq::new_from_bigint(BigInt([1u64])),
+    Fq::new_from_bigint(BigInt([1099511627776u64])),
+    Fq::new_from_bigint(BigInt([281474976645120u64])),
+    Fq::new_from_bigint(BigInt([18446744069397807105u64])),
+    Fq::new_from_bigint(BigInt([18446744065119617026u64])),
+    Fq::new_from_bigint(BigInt([256u64])),
+    Fq::new_from_bigint(BigInt([281474976710656u64])),
+    Fq::new_from_bigint(BigInt([72057594021150720u64])),
+    Fq::new_from_bigint(BigInt([18446744065119617025u64])),
+    Fq::new_from_bigint(BigInt([18446742969902956801u64])),
+    Fq::new_from_bigint(BigInt([65536u64])),
+    Fq::new_from_bigint(BigInt([72057594037927936u64])),
+    Fq::new_from_bigint(BigInt([18446744069414584320u64])),
+    Fq::new_from_bigint(BigInt([18446742969902956545u64])),
+    Fq::new_from_bigint(BigInt([18446462594437939201u64])),
+    Fq::new_from_bigint(BigInt([16777216u64])),
+    Fq::new_from_bigint(BigInt([4294967295u64])),
+    Fq::new_from_bigint(BigInt([18446744069414584065u64])),
+    Fq::new_from_bigint(BigInt([18446462594437873665u64])),
+    Fq::new_from_bigint(BigInt([18374686475393433601u64])),
+    Fq::new_from_bigint(BigInt([4294967296u64])),
+    Fq::new_from_bigint(BigInt([1099511627520u64])),
+    Fq::new_from_bigint(BigInt([18446744069414518785u64])),
+    Fq::new_from_bigint(BigInt([18374686475376656385u64])),
 ];
 
 /// 2 * ROOT_OF_UNITY_24[4] - 1
-const KAPPA: Fq = Fq::new(BigInt([12297829382473034411u64]));
+const KAPPA: Fq = Fq::new_from_bigint(BigInt([12297829382473034411u64]));
 /// 1 / 8
-const EIGHT_INV: Fq = Fq::new(BigInt([16140901060737761281u64]));
+const EIGHT_INV: Fq = Fq::new_from_bigint(BigInt([16140901060737761281u64]));
 /// 1 / 4
-const FOUR_INV: Fq = Fq::new(BigInt([13835058052060938241u64]));
+const FOUR_INV: Fq = Fq::new_from_bigint(BigInt([13835058052060938241u64]));
 
 /// Given `coefficients` of a polynoimial `f mod X^24 - X^12 + 1`
 /// returns its CRT:
@@ -438,8 +438,9 @@ fn nonresidue_to_nonresidue_to_23(c: &mut [Fq]) {
 
 #[cfg(test)]
 mod tests {
-    use ark_ff::{Field, MontFp, UniformRand};
-    use ark_std::{One, Zero};
+    use ark_ff::{Field, UniformRand};
+    use crypto_primitives::mont_fp;
+    use num_traits::{ConstOne, ConstZero};
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
 
@@ -450,7 +451,7 @@ mod tests {
     fn test_roots_of_unity() {
         // Check if they all are roots of unity of degree 24.
         for root in ROOTS_OF_UNITY_24 {
-            assert_eq!(root.pow([24]), Fq::ONE);
+            assert_eq!(root.pow([24]), <Fq as ConstOne>::ONE);
         }
 
         // Check if they are pairwise distinct.
@@ -474,7 +475,7 @@ mod tests {
                 let mut x_prime: Vec<Fq> = vec![x.c0, x.c1, x.c2];
                 $isomorphism(&mut x_prime);
                 $inverse(&mut x_prime);
-                assert_eq!(Fq3::new(x_prime[0], x_prime[1], x_prime[2]), x);
+                assert_eq!(Fq3::new_ext(x_prime[0], x_prime[1], x_prime[2]), x);
             })+
         };
     }
@@ -495,13 +496,13 @@ mod tests {
     macro_rules! test_x_square {
         ($($inverse:expr),+) => {
             $({
-                let mut x_prime: Vec<Fq> = vec![Fq::ZERO, Fq::ONE, Fq::ZERO];
-                let mut x_prime_2: Vec<Fq> = vec![Fq::ZERO, Fq::ZERO, Fq::ONE];
+                let mut x_prime: Vec<Fq> = vec![Fq::ZERO, <Fq as ConstOne>::ONE, Fq::ZERO];
+                let mut x_prime_2: Vec<Fq> = vec![Fq::ZERO, Fq::ZERO, <Fq as ConstOne>::ONE];
                 $inverse(&mut x_prime);
                 $inverse(&mut x_prime_2);
 
-                let x_prime = Fq3::new(x_prime[0], x_prime[1], x_prime[2]);
-                let x_prime_2 = Fq3::new(x_prime_2[0], x_prime_2[1], x_prime_2[2]);
+                let x_prime = Fq3::new_ext(x_prime[0], x_prime[1], x_prime[2]);
+                let x_prime_2 = Fq3::new_ext(x_prime_2[0], x_prime_2[1], x_prime_2[2]);
 
                 assert_eq!(x_prime * x_prime, x_prime_2);
             })+
@@ -524,10 +525,10 @@ mod tests {
     macro_rules! test_extension_equations {
         ($($root_of_unity:expr, $inverse:expr),+) => {
             $({
-                let mut x_prime: Vec<Fq> = vec![Fq::ZERO, Fq::ONE, Fq::ZERO];
+                let mut x_prime: Vec<Fq> = vec![Fq::ZERO, <Fq as ConstOne>::ONE, Fq::ZERO];
                 $inverse(&mut x_prime);
 
-                let x_prime = Fq3::new(x_prime[0], x_prime[1], x_prime[2]);
+                let x_prime = Fq3::new_ext(x_prime[0], x_prime[1], x_prime[2]);
 
                 assert_eq!(x_prime * x_prime * x_prime - Fq3::from_base_prime_field($root_of_unity), Fq3::ZERO);
             })+
@@ -567,54 +568,54 @@ mod tests {
             Fq::from(1),
             Fq::from(2),
             Fq::from(3),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
             Fq::from(15),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::one(),
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            <Fq as ConstOne>::ONE,
         ];
 
         let expected: Vec<Fq> = vec![
-            MontFp!("3841"),
-            MontFp!("2"),
-            MontFp!("72057594021150723"),
-            MontFp!("18446744069414580482"),
-            MontFp!("2"),
-            MontFp!("18374686475393433604"),
-            MontFp!("1080863910568919041"),
-            MontFp!("2"),
-            MontFp!("1099511627779"),
-            MontFp!("17365880158845665282"),
-            MontFp!("2"),
-            MontFp!("18446742969902956548"),
-            MontFp!("16492674416641"),
-            MontFp!("2"),
-            MontFp!("72057594037927939"),
-            MontFp!("18446727576740167682"),
-            MontFp!("2"),
-            MontFp!("18374686475376656388"),
-            MontFp!("1080863910317260801"),
-            MontFp!("2"),
-            MontFp!("259"),
-            MontFp!("17365880159097323522"),
-            MontFp!("2"),
-            MontFp!("18446744069414584068"),
+            mont_fp!("3841"),
+            mont_fp!("2"),
+            mont_fp!("72057594021150723"),
+            mont_fp!("18446744069414580482"),
+            mont_fp!("2"),
+            mont_fp!("18374686475393433604"),
+            mont_fp!("1080863910568919041"),
+            mont_fp!("2"),
+            mont_fp!("1099511627779"),
+            mont_fp!("17365880158845665282"),
+            mont_fp!("2"),
+            mont_fp!("18446742969902956548"),
+            mont_fp!("16492674416641"),
+            mont_fp!("2"),
+            mont_fp!("72057594037927939"),
+            mont_fp!("18446727576740167682"),
+            mont_fp!("2"),
+            mont_fp!("18374686475376656388"),
+            mont_fp!("1080863910317260801"),
+            mont_fp!("2"),
+            mont_fp!("259"),
+            mont_fp!("17365880159097323522"),
+            mont_fp!("2"),
+            mont_fp!("18446744069414584068"),
         ];
 
         serial_goldilock_crt_in_place(&mut test_poly);
@@ -628,42 +629,42 @@ mod tests {
     fn test_crt2() {
         // 2342 + 543543 * X + 3 * X^2 + 325*X^3 + 235325325 * X^5 + 765568568 * X^6
         let mut test_poly: Vec<Fq> = vec![
-            MontFp!("2342"),
-            MontFp!("543543"),
-            MontFp!("3"),
-            MontFp!("325"),
-            MontFp!("0"),
-            MontFp!("235325325"),
-            MontFp!("765568568"),
+            mont_fp!("2342"),
+            mont_fp!("543543"),
+            mont_fp!("3"),
+            mont_fp!("325"),
+            mont_fp!("0"),
+            mont_fp!("235325325"),
+            mont_fp!("765568568"),
         ];
 
-        test_poly.resize_with(D, Fq::zero);
+        test_poly.resize_with(D, || Fq::ZERO);
 
         let expected: Vec<Fq> = vec![
-            MontFp!("11977680547482164101"),
-            MontFp!("543543"),
-            MontFp!("488514175862046709"),
-            MontFp!("11976965864924109701"),
-            MontFp!("543543"),
-            MontFp!("17958229893552537618"),
-            MontFp!("11441394850670851783"),
-            MontFp!("543543"),
-            MontFp!("10160120756981332284"),
-            MontFp!("1497446875752052425"),
-            MontFp!("543543"),
-            MontFp!("8286623312433252043"),
-            MontFp!("50172301757990"),
-            MontFp!("543543"),
-            MontFp!("60243283203"),
-            MontFp!("50172301591590"),
-            MontFp!("543543"),
-            MontFp!("18446744009171301124"),
-            MontFp!("4971923820610324773"),
-            MontFp!("543543"),
-            MontFp!("10164068860789127484"),
-            MontFp!("13474719904200919336"),
-            MontFp!("543543"),
-            MontFp!("8282675208625456843"),
+            mont_fp!("11977680547482164101"),
+            mont_fp!("543543"),
+            mont_fp!("488514175862046709"),
+            mont_fp!("11976965864924109701"),
+            mont_fp!("543543"),
+            mont_fp!("17958229893552537618"),
+            mont_fp!("11441394850670851783"),
+            mont_fp!("543543"),
+            mont_fp!("10160120756981332284"),
+            mont_fp!("1497446875752052425"),
+            mont_fp!("543543"),
+            mont_fp!("8286623312433252043"),
+            mont_fp!("50172301757990"),
+            mont_fp!("543543"),
+            mont_fp!("60243283203"),
+            mont_fp!("50172301591590"),
+            mont_fp!("543543"),
+            mont_fp!("18446744009171301124"),
+            mont_fp!("4971923820610324773"),
+            mont_fp!("543543"),
+            mont_fp!("10164068860789127484"),
+            mont_fp!("13474719904200919336"),
+            mont_fp!("543543"),
+            mont_fp!("8282675208625456843"),
         ];
 
         serial_goldilock_crt_in_place(&mut test_poly);
@@ -680,54 +681,54 @@ mod tests {
             Fq::from(1),
             Fq::from(2),
             Fq::from(3),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
             Fq::from(15),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::zero(),
-            Fq::one(),
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            Fq::ZERO,
+            <Fq as ConstOne>::ONE,
         ];
 
         let mut evaluations: Vec<Fq> = vec![
-            MontFp!("3841"),
-            MontFp!("2"),
-            MontFp!("72057594021150723"),
-            MontFp!("18446744069414580482"),
-            MontFp!("2"),
-            MontFp!("18374686475393433604"),
-            MontFp!("1080863910568919041"),
-            MontFp!("2"),
-            MontFp!("1099511627779"),
-            MontFp!("17365880158845665282"),
-            MontFp!("2"),
-            MontFp!("18446742969902956548"),
-            MontFp!("16492674416641"),
-            MontFp!("2"),
-            MontFp!("72057594037927939"),
-            MontFp!("18446727576740167682"),
-            MontFp!("2"),
-            MontFp!("18374686475376656388"),
-            MontFp!("1080863910317260801"),
-            MontFp!("2"),
-            MontFp!("259"),
-            MontFp!("17365880159097323522"),
-            MontFp!("2"),
-            MontFp!("18446744069414584068"),
+            mont_fp!("3841"),
+            mont_fp!("2"),
+            mont_fp!("72057594021150723"),
+            mont_fp!("18446744069414580482"),
+            mont_fp!("2"),
+            mont_fp!("18374686475393433604"),
+            mont_fp!("1080863910568919041"),
+            mont_fp!("2"),
+            mont_fp!("1099511627779"),
+            mont_fp!("17365880158845665282"),
+            mont_fp!("2"),
+            mont_fp!("18446742969902956548"),
+            mont_fp!("16492674416641"),
+            mont_fp!("2"),
+            mont_fp!("72057594037927939"),
+            mont_fp!("18446727576740167682"),
+            mont_fp!("2"),
+            mont_fp!("18374686475376656388"),
+            mont_fp!("1080863910317260801"),
+            mont_fp!("2"),
+            mont_fp!("259"),
+            mont_fp!("17365880159097323522"),
+            mont_fp!("2"),
+            mont_fp!("18446744069414584068"),
         ];
 
         homogenize_fq3(&mut evaluations);
@@ -741,42 +742,42 @@ mod tests {
     fn test_icrt_2() {
         // 2342 + 543543 * X + 3 * X^2 + 325*X^3 + 235325325 * X^5 + 765568568 * X^6
         let mut expected: Vec<Fq> = vec![
-            MontFp!("2342"),
-            MontFp!("543543"),
-            MontFp!("3"),
-            MontFp!("325"),
-            MontFp!("0"),
-            MontFp!("235325325"),
-            MontFp!("765568568"),
+            mont_fp!("2342"),
+            mont_fp!("543543"),
+            mont_fp!("3"),
+            mont_fp!("325"),
+            mont_fp!("0"),
+            mont_fp!("235325325"),
+            mont_fp!("765568568"),
         ];
 
-        expected.resize_with(D, Fq::zero);
+        expected.resize_with(D, || Fq::ZERO);
 
         let mut evaluations: Vec<Fq> = vec![
-            MontFp!("11977680547482164101"),
-            MontFp!("543543"),
-            MontFp!("488514175862046709"),
-            MontFp!("11976965864924109701"),
-            MontFp!("543543"),
-            MontFp!("17958229893552537618"),
-            MontFp!("11441394850670851783"),
-            MontFp!("543543"),
-            MontFp!("10160120756981332284"),
-            MontFp!("1497446875752052425"),
-            MontFp!("543543"),
-            MontFp!("8286623312433252043"),
-            MontFp!("50172301757990"),
-            MontFp!("543543"),
-            MontFp!("60243283203"),
-            MontFp!("50172301591590"),
-            MontFp!("543543"),
-            MontFp!("18446744009171301124"),
-            MontFp!("4971923820610324773"),
-            MontFp!("543543"),
-            MontFp!("10164068860789127484"),
-            MontFp!("13474719904200919336"),
-            MontFp!("543543"),
-            MontFp!("8282675208625456843"),
+            mont_fp!("11977680547482164101"),
+            mont_fp!("543543"),
+            mont_fp!("488514175862046709"),
+            mont_fp!("11976965864924109701"),
+            mont_fp!("543543"),
+            mont_fp!("17958229893552537618"),
+            mont_fp!("11441394850670851783"),
+            mont_fp!("543543"),
+            mont_fp!("10160120756981332284"),
+            mont_fp!("1497446875752052425"),
+            mont_fp!("543543"),
+            mont_fp!("8286623312433252043"),
+            mont_fp!("50172301757990"),
+            mont_fp!("543543"),
+            mont_fp!("60243283203"),
+            mont_fp!("50172301591590"),
+            mont_fp!("543543"),
+            mont_fp!("18446744009171301124"),
+            mont_fp!("4971923820610324773"),
+            mont_fp!("543543"),
+            mont_fp!("10164068860789127484"),
+            mont_fp!("13474719904200919336"),
+            mont_fp!("543543"),
+            mont_fp!("8282675208625456843"),
         ];
 
         homogenize_fq3(&mut evaluations);
@@ -817,7 +818,7 @@ mod tests {
         for i in 0..N {
             assert_eq!(
                 non_in_place[i],
-                Fq3::new(
+                Fq3::new_ext(
                     coefficients[3 * i],
                     coefficients[3 * i + 1],
                     coefficients[3 * i + 2]
@@ -834,7 +835,7 @@ mod tests {
         let mut non_in_place: Vec<Fq3> = vec![Fq3::ZERO; N];
 
         for i in 0..N {
-            non_in_place[i] = Fq3::new(
+            non_in_place[i] = Fq3::new_ext(
                 evaluations[3 * i],
                 evaluations[3 * i + 1],
                 evaluations[3 * i + 2],

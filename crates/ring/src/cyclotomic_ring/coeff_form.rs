@@ -1,4 +1,4 @@
-use ark_ff::{Field, Fp, FpConfig};
+use ark_ff::FpConfig;
 use ark_serialize::{
     CanonicalDeserialize, CanonicalSerialize, Compress, SerializationError, Valid, Validate,
 };
@@ -14,20 +14,24 @@ use ark_std::{
     vec::*,
     One, UniformRand, Zero,
 };
+use crypto_primitives::{ark_ff_fp::Fp, Ring, Semiring};
+use crypto_primitives_proc_macros::InfallibleCheckedOp;
 use derive_more::{From, Into};
+use num_traits::{CheckedAdd, CheckedMul, CheckedNeg, CheckedSub, ConstOne, ConstZero};
 
 use super::ring_config::CyclotomicConfig;
 use crate::{
     balanced_decomposition::Decompose,
     traits::{FromRandomBytes, MulUnchecked},
-    PolyRing, Ring,
+    PolyRing, StarkRing,
 };
-
 /// A cyclotomic ring Fp[X]/(Phi_m(X)) in the coefficient form.
 /// * `C` is the configuration of the cyclotomic ring.
 /// * `N` is the byte size of the underlying prime field.
 /// * `D` is the degree of the cyclotomic polynomial.
-#[derive(From, Into)]
+#[derive(From, Into, InfallibleCheckedOp)]
+#[infallible_checked_unary_op((CheckedNeg, neg))]
+#[infallible_checked_binary_op((CheckedAdd, add), (CheckedSub, sub), (CheckedMul, mul))]
 pub struct CyclotomicPolyRingGeneral<C: CyclotomicConfig<N>, const N: usize, const D: usize>(
     pub(crate) [Fp<C::BaseFieldConfig, N>; D],
 );
@@ -54,7 +58,7 @@ impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> CyclotomicPolyRingG
     fn poly_mul(&self, rhs: &Self) -> Self {
         let lhs_coeffs = self.coeffs();
         let rhs_coeffs = rhs.coeffs();
-        let mut coeffs = vec![<Fp::<C::BaseFieldConfig, N> as Field>::ZERO; 2 * D - 1];
+        let mut coeffs = vec![Fp::<C::BaseFieldConfig, N>::ZERO; 2 * D - 1];
         for (i, &lhs_coeff) in lhs_coeffs.iter().enumerate() {
             if !lhs_coeff.is_zero() {
                 for (j, &rhs_coeff) in rhs_coeffs.iter().enumerate() {
@@ -69,7 +73,7 @@ impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> CyclotomicPolyRingG
     fn poly_mul_unchecked(&self, rhs: &Self) -> Self {
         let lhs_coeffs = self.coeffs();
         let rhs_coeffs = rhs.coeffs();
-        let mut coeffs = vec![<Fp::<C::BaseFieldConfig, N> as Field>::ZERO; 2 * D - 1];
+        let mut coeffs = vec![Fp::<C::BaseFieldConfig, N>::ZERO; 2 * D - 1];
         for (i, &lhs_coeff) in lhs_coeffs.iter().enumerate() {
             for (j, &rhs_coeff) in rhs_coeffs.iter().enumerate() {
                 coeffs[i + j] += lhs_coeff * rhs_coeff;
@@ -146,8 +150,8 @@ impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Hash
 }
 
 const fn array_one<FP: FpConfig<N>, const N: usize, const D: usize>() -> [Fp<FP, N>; D] {
-    let mut array = [FP::ZERO; D];
-    array[0] = FP::ONE;
+    let mut array = [Fp::<FP, N>::ZERO; D];
+    array[0] = Fp::ONE;
     array
 }
 
@@ -188,11 +192,31 @@ impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> CanonicalDeserializ
     }
 }
 
-impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Ring
+impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> ConstZero
+    for CyclotomicPolyRingGeneral<C, N, D>
+{
+    const ZERO: Self = Self([Fp::<C::BaseFieldConfig, N>::ZERO; D]);
+}
+
+impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> ConstOne
     for CyclotomicPolyRingGeneral<C, N, D>
 {
     const ONE: Self = Self(array_one());
-    const ZERO: Self = Self([<Fp<C::BaseFieldConfig, N> as Field>::ZERO; D]);
+}
+
+impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Semiring
+    for CyclotomicPolyRingGeneral<C, N, D>
+{
+}
+
+impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Ring
+    for CyclotomicPolyRingGeneral<C, N, D>
+{
+}
+
+impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> StarkRing
+    for CyclotomicPolyRingGeneral<C, N, D>
+{
 }
 
 impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> FromRandomBytes<Self>
@@ -712,13 +736,11 @@ impl_add_mul_primitive_type!(bool);
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        cyclotomic_ring::{
-            models::goldilocks::{RqNTT, RqPoly},
-            CRT, ICRT,
-        },
-        Ring,
+    use crate::cyclotomic_ring::{
+        models::goldilocks::{RqNTT, RqPoly},
+        CRT, ICRT,
     };
+    use num_traits::ConstOne;
 
     #[test]
     fn test_ntt_one() {

@@ -14,30 +14,30 @@ pub(super) const N: usize = 8;
 
 /// All the 24 roots of unity of degree 24.
 const ROOTS_OF_UNITY_24: &[Fq] = &[
-    Fq::new(BigInt([1u64])),          // power = 0
-    Fq::new(BigInt([503591070u64])),  // power = 1
-    Fq::new(BigInt([782862608u64])),  // power = 2
-    Fq::new(BigInt([1592366214u64])), // power = 3
-    Fq::new(BigInt([1314723124u64])), // power = 4
-    Fq::new(BigInt([715314264u64])),  // power = 5
-    Fq::new(BigInt([1728404513u64])), // power = 6
-    Fq::new(BigInt([1398021245u64])), // power = 7
-    Fq::new(BigInt([1314723123u64])), // power = 8
-    Fq::new(BigInt([211723194u64])),  // power = 9
-    Fq::new(BigInt([945541905u64])),  // power = 10
-    Fq::new(BigInt([1818920952u64])), // power = 11
-    Fq::new(BigInt([2013265920u64])), // power = 12
-    Fq::new(BigInt([1509674851u64])), // power = 13
-    Fq::new(BigInt([1230403313u64])), // power = 14
-    Fq::new(BigInt([420899707u64])),  // power = 15
-    Fq::new(BigInt([698542797u64])),  // power = 16
-    Fq::new(BigInt([1297951657u64])), // power = 18
-    Fq::new(BigInt([284861408u64])),  // power = 17
-    Fq::new(BigInt([615244676u64])),  // power = 19
-    Fq::new(BigInt([698542798u64])),  // power = 20
-    Fq::new(BigInt([1801542727u64])), // power = 21
-    Fq::new(BigInt([1067724016u64])), // power = 22
-    Fq::new(BigInt([194344969u64])),  // power = 23
+    Fq::new_from_bigint(BigInt([1u64])),          // power = 0
+    Fq::new_from_bigint(BigInt([503591070u64])),  // power = 1
+    Fq::new_from_bigint(BigInt([782862608u64])),  // power = 2
+    Fq::new_from_bigint(BigInt([1592366214u64])), // power = 3
+    Fq::new_from_bigint(BigInt([1314723124u64])), // power = 4
+    Fq::new_from_bigint(BigInt([715314264u64])),  // power = 5
+    Fq::new_from_bigint(BigInt([1728404513u64])), // power = 6
+    Fq::new_from_bigint(BigInt([1398021245u64])), // power = 7
+    Fq::new_from_bigint(BigInt([1314723123u64])), // power = 8
+    Fq::new_from_bigint(BigInt([211723194u64])),  // power = 9
+    Fq::new_from_bigint(BigInt([945541905u64])),  // power = 10
+    Fq::new_from_bigint(BigInt([1818920952u64])), // power = 11
+    Fq::new_from_bigint(BigInt([2013265920u64])), // power = 12
+    Fq::new_from_bigint(BigInt([1509674851u64])), // power = 13
+    Fq::new_from_bigint(BigInt([1230403313u64])), // power = 14
+    Fq::new_from_bigint(BigInt([420899707u64])),  // power = 15
+    Fq::new_from_bigint(BigInt([698542797u64])),  // power = 16
+    Fq::new_from_bigint(BigInt([1297951657u64])), // power = 18
+    Fq::new_from_bigint(BigInt([284861408u64])),  // power = 17
+    Fq::new_from_bigint(BigInt([615244676u64])),  // power = 19
+    Fq::new_from_bigint(BigInt([698542798u64])),  // power = 20
+    Fq::new_from_bigint(BigInt([1801542727u64])), // power = 21
+    Fq::new_from_bigint(BigInt([1067724016u64])), // power = 22
+    Fq::new_from_bigint(BigInt([194344969u64])),  // power = 23
 ];
 
 /// Given `coefficients` of a polynoimial `f mod X^72 - X^36 + 1`
@@ -134,11 +134,11 @@ fn serial_babybear_icrt(evaluations: Vec<Fq9>) -> Vec<Fq> {
 }
 
 /// (2 * ROOT_OF_UNITY_24[4] - 1)^-1
-const KAPPA: Fq = Fq::new(BigInt([1807872479]));
+const KAPPA: Fq = Fq::new_from_bigint(BigInt([1807872479]));
 /// 1 / 8
-const EIGHT_INV: Fq = Fq::new(BigInt([1761607681]));
+const EIGHT_INV: Fq = Fq::new_from_bigint(BigInt([1761607681]));
 /// 1 / 4
-const FOUR_INV: Fq = Fq::new(BigInt([1509949441]));
+const FOUR_INV: Fq = Fq::new_from_bigint(BigInt([1509949441]));
 
 fn serial_babybear_crt_in_place(coefficients: &mut [Fq]) {
     assert_eq!(coefficients.len(), D);
@@ -592,11 +592,13 @@ mod tests {
     use crate::cyclotomic_ring::models::babybear::BabyBear3ExtConfig;
 
     use super::*;
-    use ark_ff::{Field, Fp3Config, MontFp, UniformRand};
+    use ark_ff::{Field, Fp3Config, UniformRand};
     use ark_poly::{
         univariate::{DenseOrSparsePolynomial, DensePolynomial, SparsePolynomial},
         DenseUVPolynomial,
     };
+    use crypto_primitives::mont_fp;
+    use num_traits::{ConstOne, ConstZero};
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
 
@@ -604,7 +606,7 @@ mod tests {
     fn test_babybear_roots_of_unity() {
         // Check if they all are roots of unity of degree 24.
         for root in ROOTS_OF_UNITY_24 {
-            assert_eq!(root.pow([24]), Fq::ONE);
+            assert_eq!(root.pow([24]), <Fq as ConstOne>::ONE);
         }
 
         // Check if they are pairwise distinct.
@@ -653,10 +655,10 @@ mod tests {
         ($($inverse:expr),+; $($i:expr),*) => {
             $({
                 let mut x_prime: Vec<Fq> =
-                    vec![Fq::ZERO, Fq::ONE, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO];
+                    vec![Fq::ZERO, <Fq as ConstOne>::ONE, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO];
                 let mut x_prime_2: Vec<Fq> =
                     vec![Fq::ZERO; 9];
-                x_prime_2[$i] = Fq::ONE;
+                x_prime_2[$i] = <Fq as ConstOne>::ONE;
                 $inverse(&mut x_prime);
                 $inverse(&mut x_prime_2);
 
@@ -690,7 +692,7 @@ mod tests {
     macro_rules! test_extension_equations {
         ($($root_of_unity:expr, $inverse:expr),+) => {
             $({
-                let mut x_prime: Vec<Fq> = vec![Fq::ZERO, Fq::ONE, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO];
+                let mut x_prime: Vec<Fq> = vec![Fq::ZERO, <Fq as ConstOne>::ONE, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO, Fq::ZERO];
                 $inverse(&mut x_prime);
 
                 let x_prime = crate::cyclotomic_ring::models::babybear::fq9::fq_vec_to_fq9_vec(x_prime)[0];
@@ -728,7 +730,7 @@ mod tests {
         let poly2 = DensePolynomial::from_coefficients_slice(&f2_vec);
         let poly_mul = &poly1 * &poly2;
         let minimal_poly = SparsePolynomial::from_coefficients_slice(&[
-            (9, Fq::ONE),
+            (9, <Fq as ConstOne>::ONE),
             (0, -BabyBear3ExtConfig::NONRESIDUE),
         ]);
 
@@ -866,152 +868,152 @@ mod tests {
     #[test]
     fn test_babybear_icrt_hardcoded() {
         let mut initial_ntt = vec![Fq::ZERO; D];
-        initial_ntt[0] = MontFp!("1900625136");
-        initial_ntt[1] = MontFp!("112939065");
-        initial_ntt[2] = MontFp!("80310056");
-        initial_ntt[3] = MontFp!("1982426205");
-        initial_ntt[4] = MontFp!("1861467068");
-        initial_ntt[5] = MontFp!("49211297");
-        initial_ntt[6] = MontFp!("1445971202");
-        initial_ntt[7] = MontFp!("1729640160");
-        initial_ntt[8] = MontFp!("1963708676");
-        initial_ntt[9] = MontFp!("954083992");
-        initial_ntt[10] = MontFp!("829076309");
-        initial_ntt[11] = MontFp!("438872109");
-        initial_ntt[12] = MontFp!("1993465853");
-        initial_ntt[13] = MontFp!("308690395");
-        initial_ntt[14] = MontFp!("488768419");
-        initial_ntt[15] = MontFp!("1901524572");
-        initial_ntt[16] = MontFp!("1034036719");
-        initial_ntt[17] = MontFp!("1241375270");
-        initial_ntt[18] = MontFp!("466225138");
-        initial_ntt[19] = MontFp!("140725638");
-        initial_ntt[20] = MontFp!("1386731196");
-        initial_ntt[21] = MontFp!("1170787115");
-        initial_ntt[22] = MontFp!("837660087");
-        initial_ntt[23] = MontFp!("416513957");
-        initial_ntt[24] = MontFp!("1889201657");
-        initial_ntt[25] = MontFp!("894740305");
-        initial_ntt[26] = MontFp!("1840816808");
-        initial_ntt[27] = MontFp!("1326838466");
-        initial_ntt[28] = MontFp!("1166698972");
-        initial_ntt[29] = MontFp!("712318050");
-        initial_ntt[30] = MontFp!("921000781");
-        initial_ntt[31] = MontFp!("1023319258");
-        initial_ntt[32] = MontFp!("1379077144");
-        initial_ntt[33] = MontFp!("501336344");
-        initial_ntt[34] = MontFp!("1221812213");
-        initial_ntt[35] = MontFp!("128415714");
-        initial_ntt[36] = MontFp!("1320317132");
-        initial_ntt[37] = MontFp!("289989777");
-        initial_ntt[38] = MontFp!("323829215");
-        initial_ntt[39] = MontFp!("1532388335");
-        initial_ntt[40] = MontFp!("672024586");
-        initial_ntt[41] = MontFp!("1004795423");
-        initial_ntt[42] = MontFp!("801782387");
-        initial_ntt[43] = MontFp!("630843091");
-        initial_ntt[44] = MontFp!("152043073");
-        initial_ntt[45] = MontFp!("1168499229");
-        initial_ntt[46] = MontFp!("261644413");
-        initial_ntt[47] = MontFp!("202256778");
-        initial_ntt[48] = MontFp!("1733651679");
-        initial_ntt[49] = MontFp!("802644602");
-        initial_ntt[50] = MontFp!("1547582674");
-        initial_ntt[51] = MontFp!("1544500919");
-        initial_ntt[52] = MontFp!("58827862");
-        initial_ntt[53] = MontFp!("1357070166");
-        initial_ntt[54] = MontFp!("1162233649");
-        initial_ntt[55] = MontFp!("1001050512");
-        initial_ntt[56] = MontFp!("752258130");
-        initial_ntt[57] = MontFp!("97056798");
-        initial_ntt[58] = MontFp!("87706193");
-        initial_ntt[59] = MontFp!("1894023776");
-        initial_ntt[60] = MontFp!("1292875010");
-        initial_ntt[61] = MontFp!("929142525");
-        initial_ntt[62] = MontFp!("1478368962");
-        initial_ntt[63] = MontFp!("1981103952");
-        initial_ntt[64] = MontFp!("1045062179");
-        initial_ntt[65] = MontFp!("1425840265");
-        initial_ntt[66] = MontFp!("2027265");
-        initial_ntt[67] = MontFp!("1194516240");
-        initial_ntt[68] = MontFp!("1379980743");
-        initial_ntt[69] = MontFp!("1206462311");
-        initial_ntt[70] = MontFp!("1498258989");
-        initial_ntt[71] = MontFp!("1811570669");
+        initial_ntt[0] = mont_fp!("1900625136");
+        initial_ntt[1] = mont_fp!("112939065");
+        initial_ntt[2] = mont_fp!("80310056");
+        initial_ntt[3] = mont_fp!("1982426205");
+        initial_ntt[4] = mont_fp!("1861467068");
+        initial_ntt[5] = mont_fp!("49211297");
+        initial_ntt[6] = mont_fp!("1445971202");
+        initial_ntt[7] = mont_fp!("1729640160");
+        initial_ntt[8] = mont_fp!("1963708676");
+        initial_ntt[9] = mont_fp!("954083992");
+        initial_ntt[10] = mont_fp!("829076309");
+        initial_ntt[11] = mont_fp!("438872109");
+        initial_ntt[12] = mont_fp!("1993465853");
+        initial_ntt[13] = mont_fp!("308690395");
+        initial_ntt[14] = mont_fp!("488768419");
+        initial_ntt[15] = mont_fp!("1901524572");
+        initial_ntt[16] = mont_fp!("1034036719");
+        initial_ntt[17] = mont_fp!("1241375270");
+        initial_ntt[18] = mont_fp!("466225138");
+        initial_ntt[19] = mont_fp!("140725638");
+        initial_ntt[20] = mont_fp!("1386731196");
+        initial_ntt[21] = mont_fp!("1170787115");
+        initial_ntt[22] = mont_fp!("837660087");
+        initial_ntt[23] = mont_fp!("416513957");
+        initial_ntt[24] = mont_fp!("1889201657");
+        initial_ntt[25] = mont_fp!("894740305");
+        initial_ntt[26] = mont_fp!("1840816808");
+        initial_ntt[27] = mont_fp!("1326838466");
+        initial_ntt[28] = mont_fp!("1166698972");
+        initial_ntt[29] = mont_fp!("712318050");
+        initial_ntt[30] = mont_fp!("921000781");
+        initial_ntt[31] = mont_fp!("1023319258");
+        initial_ntt[32] = mont_fp!("1379077144");
+        initial_ntt[33] = mont_fp!("501336344");
+        initial_ntt[34] = mont_fp!("1221812213");
+        initial_ntt[35] = mont_fp!("128415714");
+        initial_ntt[36] = mont_fp!("1320317132");
+        initial_ntt[37] = mont_fp!("289989777");
+        initial_ntt[38] = mont_fp!("323829215");
+        initial_ntt[39] = mont_fp!("1532388335");
+        initial_ntt[40] = mont_fp!("672024586");
+        initial_ntt[41] = mont_fp!("1004795423");
+        initial_ntt[42] = mont_fp!("801782387");
+        initial_ntt[43] = mont_fp!("630843091");
+        initial_ntt[44] = mont_fp!("152043073");
+        initial_ntt[45] = mont_fp!("1168499229");
+        initial_ntt[46] = mont_fp!("261644413");
+        initial_ntt[47] = mont_fp!("202256778");
+        initial_ntt[48] = mont_fp!("1733651679");
+        initial_ntt[49] = mont_fp!("802644602");
+        initial_ntt[50] = mont_fp!("1547582674");
+        initial_ntt[51] = mont_fp!("1544500919");
+        initial_ntt[52] = mont_fp!("58827862");
+        initial_ntt[53] = mont_fp!("1357070166");
+        initial_ntt[54] = mont_fp!("1162233649");
+        initial_ntt[55] = mont_fp!("1001050512");
+        initial_ntt[56] = mont_fp!("752258130");
+        initial_ntt[57] = mont_fp!("97056798");
+        initial_ntt[58] = mont_fp!("87706193");
+        initial_ntt[59] = mont_fp!("1894023776");
+        initial_ntt[60] = mont_fp!("1292875010");
+        initial_ntt[61] = mont_fp!("929142525");
+        initial_ntt[62] = mont_fp!("1478368962");
+        initial_ntt[63] = mont_fp!("1981103952");
+        initial_ntt[64] = mont_fp!("1045062179");
+        initial_ntt[65] = mont_fp!("1425840265");
+        initial_ntt[66] = mont_fp!("2027265");
+        initial_ntt[67] = mont_fp!("1194516240");
+        initial_ntt[68] = mont_fp!("1379980743");
+        initial_ntt[69] = mont_fp!("1206462311");
+        initial_ntt[70] = mont_fp!("1498258989");
+        initial_ntt[71] = mont_fp!("1811570669");
 
         let mut expected = vec![Fq::ZERO; D];
-        expected[0] = MontFp!("1065674974");
-        expected[1] = MontFp!("1170569399");
-        expected[2] = MontFp!("170751506");
-        expected[3] = MontFp!("265022980");
-        expected[4] = MontFp!("1945207175");
-        expected[5] = MontFp!("458345263");
-        expected[6] = MontFp!("2011655826");
-        expected[7] = MontFp!("1046550861");
-        expected[8] = MontFp!("264795716");
-        expected[9] = MontFp!("1804913559");
-        expected[10] = MontFp!("843380477");
-        expected[11] = MontFp!("1398172716");
-        expected[12] = MontFp!("851789181");
-        expected[13] = MontFp!("1613109865");
-        expected[14] = MontFp!("702106862");
-        expected[15] = MontFp!("341684672");
-        expected[16] = MontFp!("1577614606");
-        expected[17] = MontFp!("307655228");
-        expected[18] = MontFp!("1421181641");
-        expected[19] = MontFp!("742137641");
-        expected[20] = MontFp!("923616603");
-        expected[21] = MontFp!("934523206");
-        expected[22] = MontFp!("1207266670");
-        expected[23] = MontFp!("487352988");
-        expected[24] = MontFp!("958533374");
-        expected[25] = MontFp!("997570189");
-        expected[26] = MontFp!("746375437");
-        expected[27] = MontFp!("449713270");
-        expected[28] = MontFp!("1293462949");
-        expected[29] = MontFp!("1967479755");
-        expected[30] = MontFp!("1128550923");
-        expected[31] = MontFp!("78875160");
-        expected[32] = MontFp!("557134787");
-        expected[33] = MontFp!("489984819");
-        expected[34] = MontFp!("1473627119");
-        expected[35] = MontFp!("1357428011");
-        expected[36] = MontFp!("1445264686");
-        expected[37] = MontFp!("380607359");
-        expected[38] = MontFp!("1492417418");
-        expected[39] = MontFp!("318205607");
-        expected[40] = MontFp!("1329808119");
-        expected[41] = MontFp!("619981352");
-        expected[42] = MontFp!("1642500830");
-        expected[43] = MontFp!("1919489665");
-        expected[44] = MontFp!("957117942");
-        expected[45] = MontFp!("1002845364");
-        expected[46] = MontFp!("1844882309");
-        expected[47] = MontFp!("153270753");
-        expected[48] = MontFp!("1840769424");
-        expected[49] = MontFp!("1401353601");
-        expected[50] = MontFp!("1250603351");
-        expected[51] = MontFp!("20939975");
-        expected[52] = MontFp!("424643571");
-        expected[53] = MontFp!("1025939175");
-        expected[54] = MontFp!("1129236551");
-        expected[55] = MontFp!("494827957");
-        expected[56] = MontFp!("559340745");
-        expected[57] = MontFp!("1220615690");
-        expected[58] = MontFp!("96579813");
-        expected[59] = MontFp!("1879163772");
-        expected[60] = MontFp!("1730330419");
-        expected[61] = MontFp!("1082601059");
-        expected[62] = MontFp!("949990547");
-        expected[63] = MontFp!("129594047");
-        expected[64] = MontFp!("940074644");
-        expected[65] = MontFp!("1825399223");
-        expected[66] = MontFp!("476133872");
-        expected[67] = MontFp!("1734778779");
-        expected[68] = MontFp!("1594364605");
-        expected[69] = MontFp!("1725670109");
-        expected[70] = MontFp!("581029317");
-        expected[71] = MontFp!("1343349559");
+        expected[0] = mont_fp!("1065674974");
+        expected[1] = mont_fp!("1170569399");
+        expected[2] = mont_fp!("170751506");
+        expected[3] = mont_fp!("265022980");
+        expected[4] = mont_fp!("1945207175");
+        expected[5] = mont_fp!("458345263");
+        expected[6] = mont_fp!("2011655826");
+        expected[7] = mont_fp!("1046550861");
+        expected[8] = mont_fp!("264795716");
+        expected[9] = mont_fp!("1804913559");
+        expected[10] = mont_fp!("843380477");
+        expected[11] = mont_fp!("1398172716");
+        expected[12] = mont_fp!("851789181");
+        expected[13] = mont_fp!("1613109865");
+        expected[14] = mont_fp!("702106862");
+        expected[15] = mont_fp!("341684672");
+        expected[16] = mont_fp!("1577614606");
+        expected[17] = mont_fp!("307655228");
+        expected[18] = mont_fp!("1421181641");
+        expected[19] = mont_fp!("742137641");
+        expected[20] = mont_fp!("923616603");
+        expected[21] = mont_fp!("934523206");
+        expected[22] = mont_fp!("1207266670");
+        expected[23] = mont_fp!("487352988");
+        expected[24] = mont_fp!("958533374");
+        expected[25] = mont_fp!("997570189");
+        expected[26] = mont_fp!("746375437");
+        expected[27] = mont_fp!("449713270");
+        expected[28] = mont_fp!("1293462949");
+        expected[29] = mont_fp!("1967479755");
+        expected[30] = mont_fp!("1128550923");
+        expected[31] = mont_fp!("78875160");
+        expected[32] = mont_fp!("557134787");
+        expected[33] = mont_fp!("489984819");
+        expected[34] = mont_fp!("1473627119");
+        expected[35] = mont_fp!("1357428011");
+        expected[36] = mont_fp!("1445264686");
+        expected[37] = mont_fp!("380607359");
+        expected[38] = mont_fp!("1492417418");
+        expected[39] = mont_fp!("318205607");
+        expected[40] = mont_fp!("1329808119");
+        expected[41] = mont_fp!("619981352");
+        expected[42] = mont_fp!("1642500830");
+        expected[43] = mont_fp!("1919489665");
+        expected[44] = mont_fp!("957117942");
+        expected[45] = mont_fp!("1002845364");
+        expected[46] = mont_fp!("1844882309");
+        expected[47] = mont_fp!("153270753");
+        expected[48] = mont_fp!("1840769424");
+        expected[49] = mont_fp!("1401353601");
+        expected[50] = mont_fp!("1250603351");
+        expected[51] = mont_fp!("20939975");
+        expected[52] = mont_fp!("424643571");
+        expected[53] = mont_fp!("1025939175");
+        expected[54] = mont_fp!("1129236551");
+        expected[55] = mont_fp!("494827957");
+        expected[56] = mont_fp!("559340745");
+        expected[57] = mont_fp!("1220615690");
+        expected[58] = mont_fp!("96579813");
+        expected[59] = mont_fp!("1879163772");
+        expected[60] = mont_fp!("1730330419");
+        expected[61] = mont_fp!("1082601059");
+        expected[62] = mont_fp!("949990547");
+        expected[63] = mont_fp!("129594047");
+        expected[64] = mont_fp!("940074644");
+        expected[65] = mont_fp!("1825399223");
+        expected[66] = mont_fp!("476133872");
+        expected[67] = mont_fp!("1734778779");
+        expected[68] = mont_fp!("1594364605");
+        expected[69] = mont_fp!("1725670109");
+        expected[70] = mont_fp!("581029317");
+        expected[71] = mont_fp!("1343349559");
 
         homogenize_fq9(&mut initial_ntt);
         babybear_icrt_in_place(&mut initial_ntt);

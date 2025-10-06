@@ -12,10 +12,10 @@ use rayon::prelude::*;
 use stark_rings_linalg::SparseMatrix;
 
 use super::{swap_bits, MultilinearExtension};
-use stark_rings::Ring;
+use stark_rings::StarkRing;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default, CanonicalDeserialize, CanonicalSerialize)]
-pub struct DenseMultilinearExtension<Rn: Ring> {
+pub struct DenseMultilinearExtension<Rn: StarkRing> {
     /// The evaluation over {0,1}^`num_vars`.
     pub evaluations: Vec<Rn>,
     /// Number of variables.
@@ -27,7 +27,7 @@ pub struct DenseMultilinearExtension<Rn: Ring> {
 }
 
 /// Representation of a dense multilinear extension (MLE).
-impl<R: Ring> DenseMultilinearExtension<R> {
+impl<R: StarkRing> DenseMultilinearExtension<R> {
     /// Create a [`DenseMultilinearExtension`] from the input slice containing
     /// all evaluations.
     ///
@@ -43,7 +43,7 @@ impl<R: Ring> DenseMultilinearExtension<R> {
             .map(|(i, _)| i + 1)
             .unwrap_or(0);
         let mut vec = Vec::with_capacity(nzl);
-        vec.extend(evaluations);
+        vec.extend_from_slice(evaluations);
 
         Self {
             num_vars,
@@ -126,7 +126,7 @@ impl<R: Ring> DenseMultilinearExtension<R> {
 
         for (row_i, row) in matrix.coeffs.iter().enumerate() {
             for (val, col_i) in row {
-                v[(padded_cols * row_i) + *col_i] = *val;
+                v[(padded_cols * row_i) + *col_i] = val.clone();
             }
         }
 
@@ -153,7 +153,7 @@ impl<R: Ring> DenseMultilinearExtension<R> {
     }
 }
 
-impl<R: Ring> MultilinearExtension<R> for DenseMultilinearExtension<R> {
+impl<R: StarkRing> MultilinearExtension<R> for DenseMultilinearExtension<R> {
     fn num_vars(&self) -> usize {
         self.num_vars
     }
@@ -209,7 +209,7 @@ impl<R: Ring> MultilinearExtension<R> for DenseMultilinearExtension<R> {
     }
 }
 
-impl<R: Ring> Zero for DenseMultilinearExtension<R> {
+impl<R: StarkRing> Zero for DenseMultilinearExtension<R> {
     fn zero() -> Self {
         Self {
             num_vars: 0,
@@ -224,17 +224,17 @@ impl<R: Ring> Zero for DenseMultilinearExtension<R> {
     }
 }
 
-impl<R: Ring> Neg for DenseMultilinearExtension<R> {
+impl<R: StarkRing> Neg for DenseMultilinearExtension<R> {
     type Output = Self;
 
     fn neg(mut self) -> Self {
-        cfg_iter_mut!(self.evaluations).for_each(|a| *a = a.neg());
+        cfg_iter_mut!(self.evaluations).for_each(|a| *a = a.checked_neg().expect("negation failed"));
 
         self
     }
 }
 
-impl<'a, R: Ring> AddAssign<&'a DenseMultilinearExtension<R>> for DenseMultilinearExtension<R> {
+impl<'a, R: StarkRing> AddAssign<&'a DenseMultilinearExtension<R>> for DenseMultilinearExtension<R> {
     fn add_assign(&mut self, rhs: &'a Self) {
         if self.is_zero() {
             *self = rhs.clone();
@@ -259,13 +259,13 @@ impl<'a, R: Ring> AddAssign<&'a DenseMultilinearExtension<R>> for DenseMultiline
     }
 }
 
-impl<R: Ring> AddAssign for DenseMultilinearExtension<R> {
+impl<R: StarkRing> AddAssign for DenseMultilinearExtension<R> {
     fn add_assign(&mut self, rhs: Self) {
         self.add_assign(&rhs);
     }
 }
 
-impl<R: Ring> Add for DenseMultilinearExtension<R> {
+impl<R: StarkRing> Add for DenseMultilinearExtension<R> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self {
@@ -275,7 +275,7 @@ impl<R: Ring> Add for DenseMultilinearExtension<R> {
     }
 }
 
-impl<'a, R: Ring> Add<&'a DenseMultilinearExtension<R>> for DenseMultilinearExtension<R> {
+impl<'a, R: StarkRing> Add<&'a DenseMultilinearExtension<R>> for DenseMultilinearExtension<R> {
     type Output = Self;
 
     fn add(self, rhs: &'a Self) -> Self {
@@ -285,9 +285,9 @@ impl<'a, R: Ring> Add<&'a DenseMultilinearExtension<R>> for DenseMultilinearExte
     }
 }
 
-impl<R: Ring> AddAssign<(R, &DenseMultilinearExtension<R>)> for DenseMultilinearExtension<R>
+impl<R: StarkRing> AddAssign<(R, &DenseMultilinearExtension<R>)> for DenseMultilinearExtension<R>
 where
-    R: Copy + ark_std::ops::AddAssign,
+    R: ark_std::ops::AddAssign,
 {
     fn add_assign(&mut self, (r, other): (R, &Self)) {
         if self.is_zero() {
@@ -316,7 +316,7 @@ where
     }
 }
 
-impl<'a, R: Ring> SubAssign<&'a DenseMultilinearExtension<R>> for DenseMultilinearExtension<R> {
+impl<'a, R: StarkRing> SubAssign<&'a DenseMultilinearExtension<R>> for DenseMultilinearExtension<R> {
     fn sub_assign(&mut self, rhs: &'a Self) {
         if self.is_zero() {
             *self = rhs.clone().neg();
@@ -341,13 +341,13 @@ impl<'a, R: Ring> SubAssign<&'a DenseMultilinearExtension<R>> for DenseMultiline
     }
 }
 
-impl<R: Ring> SubAssign for DenseMultilinearExtension<R> {
+impl<R: StarkRing> SubAssign for DenseMultilinearExtension<R> {
     fn sub_assign(&mut self, other: Self) {
         self.sub_assign(&other);
     }
 }
 
-impl<R: Ring> Sub for DenseMultilinearExtension<R> {
+impl<R: StarkRing> Sub for DenseMultilinearExtension<R> {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self {
@@ -357,7 +357,7 @@ impl<R: Ring> Sub for DenseMultilinearExtension<R> {
     }
 }
 
-impl<'a, R: Ring> Sub<&'a DenseMultilinearExtension<R>> for DenseMultilinearExtension<R> {
+impl<'a, R: StarkRing> Sub<&'a DenseMultilinearExtension<R>> for DenseMultilinearExtension<R> {
     type Output = Self;
 
     fn sub(self, rhs: &'a Self) -> Self {
@@ -367,13 +367,13 @@ impl<'a, R: Ring> Sub<&'a DenseMultilinearExtension<R>> for DenseMultilinearExte
     }
 }
 
-impl<R: Ring> MulAssign<R> for DenseMultilinearExtension<R> {
+impl<R: StarkRing> MulAssign<R> for DenseMultilinearExtension<R> {
     fn mul_assign(&mut self, rhs: R) {
         self.evaluations.iter_mut().for_each(|x| *x *= rhs);
     }
 }
 
-impl<R: Ring> Mul<R> for DenseMultilinearExtension<R> {
+impl<R: StarkRing> Mul<R> for DenseMultilinearExtension<R> {
     type Output = Self;
 
     fn mul(self, rhs: R) -> Self {
@@ -383,7 +383,7 @@ impl<R: Ring> Mul<R> for DenseMultilinearExtension<R> {
     }
 }
 
-impl<R: Ring> Add<R> for DenseMultilinearExtension<R> {
+impl<R: StarkRing> Add<R> for DenseMultilinearExtension<R> {
     type Output = Self;
 
     fn add(self, rhs: R) -> Self {
@@ -394,7 +394,7 @@ impl<R: Ring> Add<R> for DenseMultilinearExtension<R> {
     }
 }
 
-impl<R: Ring> Index<usize> for DenseMultilinearExtension<R> {
+impl<R: StarkRing> Index<usize> for DenseMultilinearExtension<R> {
     type Output = R;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -406,7 +406,7 @@ impl<R: Ring> Index<usize> for DenseMultilinearExtension<R> {
     }
 }
 
-impl<R: Ring> IndexMut<usize> for DenseMultilinearExtension<R> {
+impl<R: StarkRing> IndexMut<usize> for DenseMultilinearExtension<R> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         if index < self.evaluations.len() {
             &mut self.evaluations[index]

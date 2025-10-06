@@ -1,5 +1,7 @@
-use ark_ff::{Field, Fp3, Fp3Config, MontBackend, MontFp};
+use ark_ff::{Field, Fp3, Fp3Config, MontBackend};
 use ark_std::{mem::swap, ops::Mul, vec::*};
+use crypto_primitives::{ark_ff_field::ArkField, mont_fp};
+use num_traits::{ConstOne, ConstZero};
 
 pub mod fq9;
 pub mod ntt;
@@ -10,14 +12,16 @@ use crate::{
     },
     impl_crt_icrt_for_a_ring,
     traits::FromRandomBytes,
-    Cyclotomic, OverField, PolyRing,
+    Cyclotomic, OverField, PolyRing, StarkRing,
 };
 
 use self::fq9::{Fp9, Fp9Config};
 
 mod fq_def {
     #![allow(non_local_definitions)]
-    use ark_ff::{Fp64, MontBackend, MontConfig};
+    use ark_ff::{MontBackend, MontConfig};
+    use crypto_primitives::ark_ff_fp::Fp64;
+
     #[derive(MontConfig)]
     #[modulus = "2013265921"]
     #[generator = "31"]
@@ -37,12 +41,8 @@ impl Fp3Config for BabyBear3ExtConfig {
 
     const FROBENIUS_COEFF_FP3_C1: &'static [Self::Fp] = &[];
     const FROBENIUS_COEFF_FP3_C2: &'static [Self::Fp] = &[];
-    const NONRESIDUE: Self::Fp = MontFp!("503591070");
-    const QUADRATIC_NONRESIDUE_TO_T: Fp3<Self> = Fp3::new(
-        <Fq as Field>::ZERO,
-        <Fq as Field>::ZERO,
-        <Fq as Field>::ZERO,
-    );
+    const NONRESIDUE: Self::Fp = mont_fp!("503591070");
+    const QUADRATIC_NONRESIDUE_TO_T: Fp3<Self> = Fp3::new(Fq::ZERO, Fq::ZERO, Fq::ZERO);
     // Parameter below are placeholders and not needed
     const TRACE_MINUS_ONE_DIV_TWO: &'static [u64] = &[];
     const TWO_ADICITY: u32 = 27;
@@ -56,14 +56,14 @@ impl Fp9Config for BabyBear9ExtConfig {
     const FROBENIUS_COEFF_FP9_C1: &'static [<Self::Fp3Config as Fp3Config>::Fp] = &[];
     const FROBENIUS_COEFF_FP9_C2: &'static [<Self::Fp3Config as Fp3Config>::Fp] = &[];
     const NONRESIDUE: Fp3<Self::Fp3Config> = Fp3::new(
-        <<BabyBear3ExtConfig as Fp3Config>::Fp as Field>::ZERO,
-        <<BabyBear3ExtConfig as Fp3Config>::Fp as Field>::ONE,
-        <<BabyBear3ExtConfig as Fp3Config>::Fp as Field>::ZERO,
+        <BabyBear3ExtConfig as Fp3Config>::Fp::ZERO,
+        <<BabyBear3ExtConfig as Fp3Config>::Fp as ConstOne>::ONE,
+        <BabyBear3ExtConfig as Fp3Config>::Fp::ZERO,
     );
     const SQRT_PRECOMP: Option<ark_ff::SqrtPrecomputation<fq9::Fp9<Self>>> = None;
 }
 
-pub type Fq9 = Fp9<BabyBear9ExtConfig>;
+pub type Fq9 = ArkField<Fp9<BabyBear9ExtConfig>>;
 
 impl FromRandomBytes<Fq9> for Fq9 {
     #[inline(always)]
@@ -76,6 +76,8 @@ impl FromRandomBytes<Fq9> for Fq9 {
     }
 }
 
+impl StarkRing for Fq9 {}
+
 pub struct BabyBearRingConfig;
 
 impl CyclotomicConfig<1> for BabyBearRingConfig {
@@ -86,14 +88,11 @@ impl CyclotomicConfig<1> for BabyBearRingConfig {
 
     fn reduce_in_place(coefficients: &mut Vec<Fq>) {
         for i in 0..ntt::D / 2 {
-            let a72_i = coefficients
-                .get(ntt::D + i)
-                .copied()
-                .unwrap_or(<Fq as Field>::ZERO);
+            let a72_i = coefficients.get(ntt::D + i).copied().unwrap_or(Fq::ZERO);
             let a72_36_i = coefficients
                 .get(ntt::D + ntt::D / 2 + i)
                 .copied()
-                .unwrap_or(<Fq as Field>::ZERO);
+                .unwrap_or(Fq::ZERO);
             coefficients[i] -= a72_i;
             coefficients[i] -= a72_36_i;
         }
@@ -102,11 +101,11 @@ impl CyclotomicConfig<1> for BabyBearRingConfig {
             let a_12_i = coefficients
                 .get(ntt::D / 2 + i)
                 .copied()
-                .unwrap_or(<Fq as Field>::ZERO);
+                .unwrap_or(Fq::ZERO);
             coefficients[i] += a_12_i;
         }
 
-        coefficients.resize(ntt::D, <Fq as Field>::ZERO);
+        coefficients.resize(ntt::D, Fq::ZERO);
     }
 
     #[inline(always)]
@@ -176,7 +175,7 @@ mod tests {
     use crate::{
         balanced_decomposition::Decompose,
         cyclotomic_ring::crt::{CRT, ICRT},
-        PolyRing, Ring,
+        PolyRing,
     };
 
     #[test]
@@ -210,10 +209,10 @@ mod tests {
 
         for _i in 0..22 {
             pow *= nonresidue;
-            assert_ne!(pow, <Fq as Field>::ONE);
+            assert_ne!(pow, <Fq as ConstOne>::ONE);
         }
 
-        assert_eq!(pow * nonresidue, <Fq as Field>::ONE);
+        assert_eq!(pow * nonresidue, <Fq as ConstOne>::ONE);
     }
 
     #[test]
@@ -225,9 +224,9 @@ mod tests {
 
         // X^72 - X^36 + 1
         let the_cyclotomic = SparsePolynomial::from_coefficients_slice(&[
-            (72, <Fq as Field>::ONE),
-            (36, -<Fq as Field>::ONE),
-            (0, <Fq as Field>::ONE),
+            (72, <Fq as ConstOne>::ONE),
+            (36, -<Fq as ConstOne>::ONE),
+            (0, <Fq as ConstOne>::ONE),
         ]);
 
         let (_, r) =
@@ -267,7 +266,7 @@ mod tests {
 
         for i in 1..RqPoly::dimension() {
             a.rot();
-            assert_eq!(a, initial_a * x.pow([i as u64]));
+            assert_eq!(a, initial_a * x.pow_limbs([i as u64]));
         }
     }
 }

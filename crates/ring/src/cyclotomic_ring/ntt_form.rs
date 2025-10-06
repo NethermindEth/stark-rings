@@ -1,4 +1,4 @@
-use ark_ff::{Field, Fp};
+use ark_ff::Field;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
     fmt::{Debug, Display, Formatter},
@@ -9,19 +9,24 @@ use ark_std::{
     vec::*,
     One, UniformRand, Zero,
 };
+use crypto_primitives::{ark_ff_fp::Fp, Ring, Semiring};
+use crypto_primitives_proc_macros::InfallibleCheckedOp;
 use derive_more::{From, Into};
+use num_traits::{CheckedAdd, CheckedMul, CheckedNeg, CheckedSub, ConstOne, ConstZero};
 
 use super::ring_config::CyclotomicConfig;
 use crate::{
     traits::{FromRandomBytes, MulUnchecked},
-    PolyRing, Ring,
+    PolyRing, StarkRing,
 };
 
 /// A cyclotomic ring Fp[X]/(Phi_m(X)) in the CRT-form.
 /// * `C` is the configuration of the cyclotomic ring.
 /// * `N` is the byte size of the underlying prime field.
 /// * `D` is the number of factors in the CRT-representation of the ring.
-#[derive(From, Into, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(From, Into, CanonicalSerialize, CanonicalDeserialize, InfallibleCheckedOp)]
+#[infallible_checked_unary_op((CheckedNeg, neg))]
+#[infallible_checked_binary_op((CheckedAdd, add), (CheckedSub, sub), (CheckedMul, mul))]
 pub struct CyclotomicPolyRingNTTGeneral<C: CyclotomicConfig<N>, const N: usize, const D: usize>(
     pub(crate) [C::BaseCRTField; D],
 );
@@ -97,11 +102,31 @@ impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Hash
     }
 }
 
+impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> ConstZero
+    for CyclotomicPolyRingNTTGeneral<C, N, D>
+{
+    const ZERO: Self = Self([<C::BaseCRTField as ConstZero>::ZERO; D]);
+}
+
+impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> ConstOne
+    for CyclotomicPolyRingNTTGeneral<C, N, D>
+{
+    const ONE: Self = Self([<C::BaseCRTField as ConstOne>::ONE; D]);
+}
+
+impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Semiring
+    for CyclotomicPolyRingNTTGeneral<C, N, D>
+{
+}
+
 impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> Ring
     for CyclotomicPolyRingNTTGeneral<C, N, D>
 {
-    const ONE: Self = Self([<C::BaseCRTField as Field>::ONE; D]);
-    const ZERO: Self = Self([<C::BaseCRTField as Field>::ZERO; D]);
+}
+
+impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> StarkRing
+    for CyclotomicPolyRingNTTGeneral<C, N, D>
+{
 }
 
 impl<C: CyclotomicConfig<N>, const N: usize, const D: usize> FromRandomBytes<Self>

@@ -14,7 +14,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use stark_rings_linalg::SparseMatrix;
 
 use super::{swap_bits, MultilinearExtension};
-use stark_rings::Ring;
+use stark_rings::StarkRing;
 
 #[cfg(feature = "std")]
 use ark_std::collections::HashMap;
@@ -22,14 +22,14 @@ use ark_std::collections::HashMap;
 use hashbrown::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default, CanonicalDeserialize, CanonicalSerialize)]
-pub struct SparseMultilinearExtension<Rn: Ring> {
+pub struct SparseMultilinearExtension<Rn: StarkRing> {
     /// The evaluation over {0,1}^`num_vars`
     pub evaluations: BTreeMap<usize, Rn>,
     /// Number of variables
     pub num_vars: usize,
     zero: Rn,
 }
-impl<R: Ring> SparseMultilinearExtension<R> {
+impl<R: StarkRing> SparseMultilinearExtension<R> {
     pub fn from_evaluations<'a>(
         num_vars: usize,
         evaluations: impl IntoIterator<Item = &'a (usize, R)>,
@@ -130,7 +130,7 @@ impl<R: Ring> SparseMultilinearExtension<R> {
     }
 }
 
-impl<R: Ring> MultilinearExtension<R> for SparseMultilinearExtension<R> {
+impl<R: StarkRing> MultilinearExtension<R> for SparseMultilinearExtension<R> {
     fn num_vars(&self) -> usize {
         self.num_vars
     }
@@ -223,7 +223,7 @@ impl<R: Ring> MultilinearExtension<R> for SparseMultilinearExtension<R> {
         evaluations
     }
 }
-impl<R: Ring> Zero for SparseMultilinearExtension<R> {
+impl<R: StarkRing> Zero for SparseMultilinearExtension<R> {
     fn zero() -> Self {
         Self {
             num_vars: 0,
@@ -236,14 +236,14 @@ impl<R: Ring> Zero for SparseMultilinearExtension<R> {
         self.num_vars == 0 && self.evaluations.is_empty()
     }
 }
-impl<R: Ring> Add for SparseMultilinearExtension<R> {
+impl<R: StarkRing> Add for SparseMultilinearExtension<R> {
     type Output = SparseMultilinearExtension<R>;
 
     fn add(self, other: SparseMultilinearExtension<R>) -> Self {
         &self + &other
     }
 }
-impl<'a, R: Ring> Add<&'a SparseMultilinearExtension<R>> for &SparseMultilinearExtension<R> {
+impl<'a, R: StarkRing> Add<&'a SparseMultilinearExtension<R>> for &SparseMultilinearExtension<R> {
     type Output = SparseMultilinearExtension<R>;
 
     fn add(self, rhs: &'a SparseMultilinearExtension<R>) -> Self::Output {
@@ -277,17 +277,17 @@ impl<'a, R: Ring> Add<&'a SparseMultilinearExtension<R>> for &SparseMultilinearE
     }
 }
 
-impl<R: Ring> AddAssign for SparseMultilinearExtension<R> {
+impl<R: StarkRing> AddAssign for SparseMultilinearExtension<R> {
     fn add_assign(&mut self, other: Self) {
         *self = &*self + &other;
     }
 }
-impl<'a, R: Ring> AddAssign<&'a SparseMultilinearExtension<R>> for SparseMultilinearExtension<R> {
+impl<'a, R: StarkRing> AddAssign<&'a SparseMultilinearExtension<R>> for SparseMultilinearExtension<R> {
     fn add_assign(&mut self, rhs: &'a SparseMultilinearExtension<R>) {
         *self = &*self + rhs;
     }
 }
-impl<R: Ring> AddAssign<(R, &SparseMultilinearExtension<R>)> for SparseMultilinearExtension<R> {
+impl<R: StarkRing> AddAssign<(R, &SparseMultilinearExtension<R>)> for SparseMultilinearExtension<R> {
     fn add_assign(&mut self, (r, other): (R, &SparseMultilinearExtension<R>)) {
         if !self.is_zero() && !other.is_zero() {
             assert_eq!(
@@ -306,12 +306,12 @@ impl<R: Ring> AddAssign<(R, &SparseMultilinearExtension<R>)> for SparseMultiline
         *self += &other;
     }
 }
-impl<R: Ring> Neg for SparseMultilinearExtension<R> {
+impl<R: StarkRing> Neg for SparseMultilinearExtension<R> {
     type Output = SparseMultilinearExtension<R>;
 
     fn neg(self) -> Self {
         let ev: Vec<_> = cfg_iter!(self.evaluations)
-            .map(|(i, v)| (*i, -*v))
+            .map(|(i, v)| (*i, v.checked_neg().expect("negation overflow")))
             .collect();
         Self::Output {
             num_vars: self.num_vars,
@@ -320,14 +320,14 @@ impl<R: Ring> Neg for SparseMultilinearExtension<R> {
         }
     }
 }
-impl<R: Ring> Sub for SparseMultilinearExtension<R> {
+impl<R: StarkRing> Sub for SparseMultilinearExtension<R> {
     type Output = SparseMultilinearExtension<R>;
 
     fn sub(self, other: SparseMultilinearExtension<R>) -> Self {
         &self - &other
     }
 }
-impl<'a, R: Ring> Sub<&'a SparseMultilinearExtension<R>> for &SparseMultilinearExtension<R> {
+impl<'a, R: StarkRing> Sub<&'a SparseMultilinearExtension<R>> for &SparseMultilinearExtension<R> {
     type Output = SparseMultilinearExtension<R>;
 
     #[allow(clippy::suspicious_arithmetic_impl)]
@@ -335,17 +335,17 @@ impl<'a, R: Ring> Sub<&'a SparseMultilinearExtension<R>> for &SparseMultilinearE
         self + &rhs.clone().neg()
     }
 }
-impl<R: Ring> SubAssign for SparseMultilinearExtension<R> {
+impl<R: StarkRing> SubAssign for SparseMultilinearExtension<R> {
     fn sub_assign(&mut self, other: SparseMultilinearExtension<R>) {
         *self = &*self - &other;
     }
 }
-impl<'a, R: Ring> SubAssign<&'a SparseMultilinearExtension<R>> for SparseMultilinearExtension<R> {
+impl<'a, R: StarkRing> SubAssign<&'a SparseMultilinearExtension<R>> for SparseMultilinearExtension<R> {
     fn sub_assign(&mut self, rhs: &'a SparseMultilinearExtension<R>) {
         *self = &*self - rhs;
     }
 }
-impl<R: Ring> Index<usize> for SparseMultilinearExtension<R> {
+impl<R: StarkRing> Index<usize> for SparseMultilinearExtension<R> {
     type Output = R;
 
     /// Returns the evaluation of the polynomial at a point represented by
@@ -366,19 +366,19 @@ impl<R: Ring> Index<usize> for SparseMultilinearExtension<R> {
 }
 
 /// Utilities
-fn tuples_to_treemap<R: Ring>(tuples: &[(usize, R)]) -> BTreeMap<usize, R> {
+fn tuples_to_treemap<R: StarkRing>(tuples: &[(usize, R)]) -> BTreeMap<usize, R> {
     BTreeMap::from_iter(tuples.iter().map(|(i, v)| (*i, *v)))
 }
 
-fn treemap_to_hashmap<R: Ring>(map: &BTreeMap<usize, R>) -> HashMap<usize, R> {
+fn treemap_to_hashmap<R: StarkRing>(map: &BTreeMap<usize, R>) -> HashMap<usize, R> {
     HashMap::from_iter(map.iter().map(|(i, v)| (*i, *v)))
 }
-fn hashmap_to_treemap<R: Ring>(map: &HashMap<usize, R>) -> BTreeMap<usize, R> {
+fn hashmap_to_treemap<R: StarkRing>(map: &HashMap<usize, R>) -> BTreeMap<usize, R> {
     BTreeMap::from_iter(map.iter().map(|(i, v)| (*i, *v)))
 }
 
 // precompute  f(x) = eq(g,x)
-fn precompute_eq<R: Ring>(g: &[R]) -> Vec<R> {
+fn precompute_eq<R: StarkRing>(g: &[R]) -> Vec<R> {
     let dim = g.len();
     let mut dp = vec![R::zero(); 1 << dim];
     dp[0] = R::one() - g[0];
@@ -402,7 +402,7 @@ mod tests {
     use stark_rings::cyclotomic_ring::models::goldilocks::Fq;
 
     // Function to convert usize to a binary vector of Ring elements.
-    fn usize_to_binary_vector<R: Ring>(n: usize, dimensions: usize) -> Vec<R> {
+    fn usize_to_binary_vector<R: StarkRing>(n: usize, dimensions: usize) -> Vec<R> {
         let mut bits = Vec::with_capacity(dimensions);
         let mut current = n;
 
@@ -418,18 +418,18 @@ mod tests {
     }
 
     // Wrapper function to generate a boolean hypercube.
-    fn boolean_hypercube<R: Ring>(dimensions: usize) -> Vec<Vec<R>> {
+    fn boolean_hypercube<R: StarkRing>(dimensions: usize) -> Vec<Vec<R>> {
         let max_val = 1 << dimensions; // 2^dimensions
         (0..max_val)
             .map(|i| usize_to_binary_vector::<R>(i, dimensions))
             .collect()
     }
 
-    fn vec_cast<R: Ring>(v: &[usize]) -> Vec<R> {
+    fn vec_cast<R: StarkRing>(v: &[usize]) -> Vec<R> {
         v.iter().map(|c| R::from(*c as u64)).collect()
     }
 
-    fn matrix_cast<R: Ring>(m: &[Vec<usize>]) -> SparseMatrix<R> {
+    fn matrix_cast<R: StarkRing>(m: &[Vec<usize>]) -> SparseMatrix<R> {
         let nrows = m.len();
         let ncols = m[0].len();
         let mut coeffs = Vec::with_capacity(nrows);
@@ -449,7 +449,7 @@ mod tests {
         }
     }
 
-    fn get_test_z<R: Ring>(input: usize) -> Vec<R> {
+    fn get_test_z<R: StarkRing>(input: usize) -> Vec<R> {
         vec_cast(&[
             input, // io
             1,

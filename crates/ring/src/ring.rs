@@ -1,71 +1,21 @@
-use ark_ff::{BigInteger, BitIteratorBE, BitIteratorLE, Field, Fp, FpConfig, PrimeField};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_std::{
-    fmt::{Debug, Display},
-    hash::Hash,
-    iter::{Product, Sum},
-    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    One, UniformRand, Zero,
-};
-
 use crate::{traits::FromRandomBytes, ConversionError};
+use ark_ff::{BigInteger, BitIteratorBE, BitIteratorLE, Field, FpConfig, PrimeField};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use ark_std::UniformRand;
+use crypto_primitives::{ark_ff_fp::Fp, ConstRing, IntRing};
+use num_traits::{ConstOne, ConstZero};
 
-pub trait Ring: 'static +
-Copy +
-Clone +
-Debug +
-Display +
-Default +
-Send +
-Sync +
-Eq +
-Zero +
-One +
-Neg<Output=Self> +
-UniformRand +
-Sized +
-Hash +
-CanonicalSerialize +
-CanonicalDeserialize +
-Add<Self, Output=Self> +
-Sub<Self, Output=Self> +
-Mul<Self, Output=Self> +
-AddAssign<Self> +
-SubAssign<Self> +
-MulAssign<Self> +
-    for<'a> Add<&'a Self, Output=Self> +
-    for<'a> Sub<&'a Self, Output=Self> +
-    for<'a> Mul<&'a Self, Output=Self> +
-    for<'a> AddAssign<&'a Self> +
-    for<'a> SubAssign<&'a Self> +
-    for<'a> MulAssign<&'a Self> +
-    for<'a> Add<&'a mut Self, Output=Self> +
-    for<'a> Sub<&'a mut Self, Output=Self> +
-    for<'a> Mul<&'a mut Self, Output=Self> +
-    for<'a> AddAssign<&'a mut Self> +
-    for<'a> SubAssign<&'a mut Self> +
-    for<'a> MulAssign<&'a mut Self> +
-Sum<Self> +
-    for<'a> Sum<&'a Self> +
-Product<Self> +
-    for<'a> Product<&'a Self> +
-Sum<Self> +
-From<u128> +
-From<u64> +
-From<u32> +
-From<u16> +
-From<u8> +
-From<bool> +
-// Differs from arkworks
-FromRandomBytes<Self> +
-CanonicalSerialize +
-CanonicalDeserialize
+pub trait StarkRing: 'static +
+    ConstRing +
+    Copy +
+    From<u64> +
+    From<u128> +
+    UniformRand +
+    // Differs from arkworks
+    FromRandomBytes<Self> +
+    CanonicalSerialize +
+    CanonicalDeserialize
 {
-    /// The additive identity of the ring.
-    const ZERO: Self;
-    /// The multiplicative identity of the ring.
-    const ONE: Self;
-
     /// Returns `sum([a_i * b_i])`.
     #[inline]
     fn sum_of_products<const T: usize>(a: &[Self; T], b: &[Self; T]) -> Self {
@@ -84,7 +34,7 @@ CanonicalDeserialize
     /// Returns `self^exp`, where `exp` is an integer represented with `u64` limbs,
     /// least significant limb first.
     #[must_use]
-    fn pow<S: AsRef<[u64]>>(&self, exp: S) -> Self {
+    fn pow_limbs<S: AsRef<[u64]>>(&self, exp: S) -> Self {
         let mut res = Self::one();
 
         for i in BitIteratorBE::without_leading_zeros(exp) {
@@ -116,11 +66,13 @@ CanonicalDeserialize
     }
 }
 
+impl<C, const N: usize> StarkRing for Fp<C, N> where C: FpConfig<N> {}
+
 impl<C: FpConfig<N>, const N: usize> FromRandomBytes<Fp<C, N>> for Fp<C, N> {
     fn byte_size() -> usize {
-        Self::zero().uncompressed_size() + 9 // TODO: check if this is correct;
-                                             // this is inferred from Fp<C,
-                                             // N>::from_random_bytes()
+        Self::ZERO.uncompressed_size() + 9 // TODO: check if this is correct;
+                                           // this is inferred from Fp<C,
+                                           // N>::from_random_bytes()
     }
 
     fn try_from_random_bytes(bytes: &[u8]) -> Option<Self> {
@@ -128,14 +80,8 @@ impl<C: FpConfig<N>, const N: usize> FromRandomBytes<Fp<C, N>> for Fp<C, N> {
     }
 }
 
-/// Every field is a ring
-impl<F: Field + FromRandomBytes<F>> Ring for F {
-    const ONE: Self = F::ONE;
-    const ZERO: Self = F::ZERO;
-}
-
 /// Ring of integers
-pub trait Zq: Ring {
+pub trait Zq: IntRing {
     /// Convert self to `u64`
     fn to_u64(&self) -> Result<u64, ConversionError>;
     /// Center self to around `(p-1)/2`
@@ -180,11 +126,11 @@ impl<C: FpConfig<N>, const N: usize> Zq for Fp<C, N> {
     fn sign(&self) -> Self {
         let bi = self.into_bigint();
         if bi > Self::MODULUS_MINUS_ONE_DIV_TWO {
-            -<Self as Field>::ONE
+            -<Self as ConstOne>::ONE
         } else if bi <= Self::MODULUS_MINUS_ONE_DIV_TWO {
-            <Self as Field>::ONE
+            <Self as ConstOne>::ONE
         } else {
-            <Self as Field>::ZERO
+            <Self as ConstZero>::ZERO
         }
     }
 }
